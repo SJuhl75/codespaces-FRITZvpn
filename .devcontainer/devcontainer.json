@@ -3,10 +3,7 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	"remoteEnv": {
-		  "Enable_VPN": "on"
-	},
-
+	
 	// Allow the container to interact with host networking
 	"runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW", "--device=/dev/net/tun"],
 
