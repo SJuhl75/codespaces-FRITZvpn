@@ -17,4 +17,5 @@ if [ ! -z "${WIREGUARD_CONFIG}" ]; then
 fi
 if [ ! -z "${VPNC_CONFIG}" ]; then 
     echo "${VPNC_CONFIG}" > vpnc.conf
+    echo "Script $( dirname "${BASH_SOURCE[0]}" )/custom-script" >> vpnc.conf
 fi
