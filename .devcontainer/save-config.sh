@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-export EN_VPN="ON"
+#export EN_VPN="ON"
 # Switch to the .devcontainer folder
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
@@ -19,5 +19,5 @@ if [ ! -z "${VPNC_CONFIG}" ]; then
     echo "${VPNC_CONFIG}" > vpnc.conf
 fi
 echo "EN_VPN = ${EN_VPN}" >> envpn.log
-echo "ENVPN = ${{ env.EN_VPN }}" >> envpn.log
+echo "ENVPN = ${ env.EN_VPN }" >> envpn.log
 echo "ENA_VPN = ${ENA_VPN}" >> envpn.log
