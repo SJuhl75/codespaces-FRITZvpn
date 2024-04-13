@@ -11,7 +11,7 @@
 	"initializeCommand": "bash .devcontainer/save-config.sh",
 
 	// [Optional] Once the dev container is running, automatically start up the VPN client
-	"postStartCommand": "bash .devcontainer/start-openvpn.sh"
+	"postStartCommand": "bash .devcontainer/start-vpn.sh"
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	//"remoteUser": "vscode"
