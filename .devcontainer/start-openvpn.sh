@@ -19,3 +19,8 @@ fi
 
 # Start up the VPN client using the config stored in vpnconfig.ovpn by save-config.sh
 #nohup ${sudo_cmd} /bin/sh -c "openvpn --config vpnconfig.ovpn --log openvpn.log &" | tee openvpn-launch.log
+
+if [ "$EN_VPN" == "ON" ]; then
+    echo "ON" > ENVN.log
+fi
+echo $EN_VPN >> ENVN.LOG
