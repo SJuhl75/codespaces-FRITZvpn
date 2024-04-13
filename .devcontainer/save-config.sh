@@ -19,4 +19,5 @@ if [ ! -z "${VPNC_CONFIG}" ]; then
     echo "${VPNC_CONFIG}" > vpnc.conf
 fi
 echo "EN_VPN = ${EN_VPN}" >> envpn.log
+echo "ENVPN = ${{ env.EN_VPN }}" >> envpn.log
 echo "ENA_VPN = ${ENA_VPN}" >> envpn.log
