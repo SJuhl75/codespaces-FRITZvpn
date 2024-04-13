@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-
+export EN_VPN="ON"
 # Switch to the .devcontainer folder
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
