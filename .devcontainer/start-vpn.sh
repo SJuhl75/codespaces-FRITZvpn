@@ -21,5 +21,5 @@ fi
 if [ "${VPNS}" == "ON" ]; then
     echo "VPN ON" >> envpn.log
     #nohup ${sudo_cmd} /bin/sh -c "openvpn --config vpnconfig.ovpn --log openvpn.log &" | tee openvpn-launch.log
-    nohup ${sudo_cmd} /bin/sh -c "vpnc --debug 1 --target-network 192.168.178.0/255.255.255.0 ${BASH_SOURCE[0]}/vpntmp/vpnc &" | tee vpn-launch.log
+    nohup ${sudo_cmd} /bin/sh -c "vpnc --debug 1 --target-network 192.168.178.0/255.255.255.0 $( dirname BASH_SOURCE[0])/vpntmp/vpnc &" | tee vpn-launch.log
 fi
