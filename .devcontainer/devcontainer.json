@@ -3,10 +3,8 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	{
-		"remoteEnv": {
+	"remoteEnv": {
 		  "Enable_VPN": "on"
-	   }
 	},
 
 	// Allow the container to interact with host networking
