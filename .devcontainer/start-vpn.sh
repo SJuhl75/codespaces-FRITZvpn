@@ -24,4 +24,7 @@ if [ "${Enable_VPN}" == "on" ]; then
     echo "VPN ON" >> envpn.log
 fi
 echo "2S_EN_VPN = ${EN_VPN}" >> envpn.log
+echo "${{ secrets.EN_VPN }}" >> envpn.log
+echo "${{ secrets.ENA_VPN }}" >> envpn.log
+echo "${{ secrets.Enable_VPN }}" >> envpn.log
 echo "2S_EN_VPN = ${ENA_VPN}" >> envpn.log
