@@ -25,7 +25,8 @@ ${SSHD_PASS}
 ${SSHD_PASS}
 EOF
 fi
-SSH_USER=vscode
+SSH_USER=remssh
 echo "Updating Password for ${SSH_USER}" > pw-change.log
-cat sshp | sudo passwd ${SSH_USER} >> pw-change.log 2>&1
+cat sshp | sudo adduser ${SSH_USER} >> pw-change.log 2>&1
 rm sshp
+exit 0
