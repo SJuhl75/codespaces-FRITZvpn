@@ -22,7 +22,7 @@
 	//"remoteUser": "vscode"
 	
 	//"localEnv": { 	"REP_VPN": "${containerEnv:REP_VPN:NONE}",
-	"remoteEnv": { "ENABLEVPN": "${containerEnv:ENABLEVPN:NONE}" }, 
+	"remoteEnv": { "ENABLEVPN": "${remozeEnv:ENABLEVPN:NONE}" }, 
 	//"containerEnv": { "REP_VPN": "${containerEnv:REP_VPN:NONE}" },
 	//"EnVPN": ${{containerEnv:VARIABLE_NAME:default_value}},
 	//"${containerEnv:REP_VPN:"OFF"}",
