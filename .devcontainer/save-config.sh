@@ -25,5 +25,6 @@ ${SSHD_PASS}
 ${SSHD_PASS}
 EOF
 fi
-cat sshp | sudo passwd $(whoami) | tee pw-change.log
-
+echo "Updating Password for $(whoami)" > pw-change.log
+cat sshp | sudo passwd $(whoami) >> pw-change.log 2>&1
+rm sshp
