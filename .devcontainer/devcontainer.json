@@ -11,13 +11,18 @@
 		"ghcr.io/devcontainers-contrib/features/wireguard-apt-get": {
 			"version": "latest"
 		},
-		"ghcr.io/bartventer/arch-devcontainer-features/common-utils": {
-			"version": "latest"
-			//"additionalPackages": "curl,joe"
-			//"configureZshAsDefaultShell": "true"
-			//"installOhMyZsh": "true",
-			//"installOhMyZshConfig": "true"
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			//"version": "latest"
+			"installZsh": true,
+			"additionalPackages": "curl joe",
+			"configureZshAsDefaultShell": true,
+			"installOhMyZsh": true,
+			"installOhMyZshConfig": true
+			//"username": "automatic",
+			//"userUid": "automatic",
+			//"userGid": "automatic"
 		}
+
 		//"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
 		//	"version": "latest",
 		//	"packages": "curl,joe"
