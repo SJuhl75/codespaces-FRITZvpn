@@ -36,5 +36,4 @@ GitHub Codespaces provides a useful environment for development that is separate
 4. Assign this secret to either this repository or your own fork of it.
 5. Create a codespace - after its started, you should be connected to your VPN. If you aren't you can manually run `.devcontainer/start-openvpn.sh` to try again and logs can be found in `.devcontainer/openvpn-tmp/openvpn.log`.
 
-
-
+ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vscode@localhost
