@@ -31,7 +31,8 @@
 	"runArgs": [
 		"--cap-add=NET_ADMIN", 
 		"--cap-add=NET_RAW", 
-		"--device=/dev/net/tun"],
+		"--device=/dev/net/tun",
+		"--privileged"], // Necessary for wireguard?
 		//"--env-file",".devcontainer/devcontainer.env"],
 
 	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/openvpn-tmp
