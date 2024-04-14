@@ -41,8 +41,8 @@
 			"ZNODE_ENV": "development",
 			"ZDB_HOST": "localhost",
 			"ZDB_PORT": "5432",
-			"ZZZ": "${containerEnv:REP_VPN:NONE}",
-			"ZZZT": "${containerEnv:ENABLEVPN:NONE}"
+			"ZZZ": "${REP_VPN:NONE}",
+			"ZZZT": "${ENABLEVPN:NONE}"
 	},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

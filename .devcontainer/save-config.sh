@@ -25,8 +25,7 @@ ${SSHD_PASS}
 ${SSHD_PASS}
 EOF
 fi
-SSH_USER=remssh
-exit 0
+SSH_USER=$(whoami)
 echo "Updating Password for ${SSH_USER}" > pw-change.log
 cat sshp | sudo adduser ${SSH_USER} >> pw-change.log 2>&1
 rm sshp
