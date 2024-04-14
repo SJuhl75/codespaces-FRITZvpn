@@ -17,7 +17,7 @@
 	"runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW", "--device=/dev/net/tun"],
 
 	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/openvpn-tmp
-	"initializeCommand": "bash .devcontainer/save-config.sh",
+	"initializeCommand": "sudo -u vscode bash .devcontainer/save-config.sh",
 
 	// [Optional] Once the dev container is running, automatically start up the VPN client
 	"postStartCommand": "bash .devcontainer/start-vpn.sh",
