@@ -1,4 +1,5 @@
-# Using the OpenVPN client from GitHub Codespaces
+# Using VPN clients from GitHub Codespaces
+This fork provides Wireguard and IPSEC VPN capabilities, to be used with the AVM Fritz!Box series router!
 
 GitHub Codespaces provides a useful environment for development that is separated from your local machine. This provides some nice security benifits due to the fact that the codespace has no direct route to your machine or the network it is sitting in. However, you may have a resource you need to access that is in a private network. This sample illustrates how to set up the OpenVPN (v2) client in a codespace to connect into a OpenVPN capable VPN gateway.
 
@@ -37,13 +38,17 @@ GitHub Codespaces provides a useful environment for development that is separate
 5. Create a codespace - after its started, you should be connected to your VPN. If you aren't you can manually run `.devcontainer/start-openvpn.sh` to try again and logs can be found in `.devcontainer/openvpn-tmp/openvpn.log`.
 
 # SSH
+Use the following command to access CodeSpace by SSH via VPN.
+Credentials must be provided by SSH_PASS environment variable.
+>> ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vscode@localhost
 https://github.com/microsoft/vscode-dev-containers/tree/main/containers/codespaces-linux
-ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vscode@localhost
 
 # WireGuard
+Although somebody suggested, using ...
+>> sudo ln /usr/bin/resolvectl /usr/bin/systemd-resolve
+in order to trouble due to missing resolvconf binary. One possible solution is to remove DNS settings from wireguard config file.
 https://github.com/pirate/wireguard-docs
-sudo ln /usr/bin/resolvectl /usr/bin/systemd-resolve
 
 # Environment
-/workspaces/.codespaces/shared/
+Something to explore later on, folder: /workspaces/.codespaces/shared/
 jq -r "."  /workspaces/.codespaces/shared/user-secrets-envs.json
