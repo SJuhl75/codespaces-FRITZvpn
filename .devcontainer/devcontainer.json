@@ -32,8 +32,8 @@
 		"--cap-add=NET_ADMIN", 
 		"--cap-add=NET_RAW", 
 		"--device=/dev/net/tun",
-		"--privileged"], // Necessary for wireguard?
-		//"--env-file",".devcontainer/devcontainer.env"],
+		"--privileged"], // Necessary for wireguard
+	
 
 	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/openvpn-tmp
 	"initializeCommand": "bash .devcontainer/save-config.sh",
@@ -41,9 +41,6 @@
 	// [Optional] Once the dev container is running, automatically start up the VPN client
 	"postStartCommand": "bash .devcontainer/start-vpn.sh",
 	
-	// Use the postAttachCommand to update SSH credentials
-	// "postAttachCommand": "bash .devcontainer/post-attach.sh",
-
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	
