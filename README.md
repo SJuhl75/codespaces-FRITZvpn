@@ -43,3 +43,7 @@ ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vscode@l
 # WireGuard
 https://github.com/pirate/wireguard-docs
 sudo ln /usr/bin/resolvectl /usr/bin/systemd-resolve
+
+# Environment
+/workspaces/.codespaces/shared/
+jq -r "."  /workspaces/.codespaces/shared/user-secrets-envs.json

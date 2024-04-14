@@ -11,10 +11,10 @@
 		"ghcr.io/devcontainers-contrib/features/wireguard-apt-get": {
 			"version": "latest"
 		},
-		"ghcr.io/devcontainers/features/common-utils:2": {
-			//"version": "latest"
+		"ghcr.io/devcontainers/features/common-utils": {
+			"version": "latest",
 			"installZsh": true,
-			"additionalPackages": "curl joe",
+			"additionalPackages": "curl,joe",
 			"configureZshAsDefaultShell": true,
 			"installOhMyZsh": true,
 			"installOhMyZshConfig": true
