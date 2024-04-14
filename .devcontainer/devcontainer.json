@@ -48,9 +48,9 @@
 			"ZNODE_ENV": "development",
 			"ZDB_HOST": "localhost",
 			"ZDB_PORT": "5432",
-			"ZZH": "${containerEnv:ENABLEVPN:non}",
+			"ZZH": "${containerEnv:REP_VPN:non}",
 			"ZZA": "${env:ENABLEVPN}",
-			"ZZC": "${localEnv:ENABLEVPN}"
+			"ZZC": "${localEnv:REP_VPN}"
 			//I agree, we support ${env:XYZ} and ${localWorkspaceFolder}. (${localEnv:XYZ} and ${containerEnv} in Insiders.)
 	},
 	
