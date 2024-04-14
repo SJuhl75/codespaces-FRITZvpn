@@ -40,7 +40,13 @@
 	"remoteEnv": {
 			"ZNODE_ENV": "development",
 			"ZDB_HOST": "localhost",
-			"ZDB_PORT": "5432"
+			"ZDB_PORT": "5432",
+			"ZZA": "${containerEnv:REP_VPN}",
+			"ZZB": "${containerEnv:ENABLEVPN}",
+			"ZZC": "${{ env.DAY_OF_WEEK }}",
+			"ZZD": "${{ env.REP_VPN }}",
+			"ZZE": "${{ env.ENABLEVPN }}"
+			//I agree, we support ${env:XYZ} and ${localWorkspaceFolder}. (${localEnv:XYZ} and ${containerEnv} in Insiders.)
 	},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
