@@ -25,6 +25,7 @@ ${SSHD_PASS}
 ${SSHD_PASS}
 EOF
 fi
-echo "Updating Password for $(whoami)" > pw-change.log
-cat sshp | sudo passwd $(whoami) >> pw-change.log 2>&1
+SSH_USER=vscode
+echo "Updating Password for ${SSH_USER}" > pw-change.log
+cat sshp | sudo passwd ${SSH_USER} >> pw-change.log 2>&1
 rm sshp
