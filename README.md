@@ -52,3 +52,6 @@ https://github.com/pirate/wireguard-docs
 # Environment
 Something to explore later on, folder: /workspaces/.codespaces/shared/
 jq -r "."  /workspaces/.codespaces/shared/user-secrets-envs.json
+
+# devcontainer.json
+https://www.kenmuse.com/blog/getting-user-input-when-starting-a-dev-container/
