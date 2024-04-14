@@ -10,4 +10,3 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update \
     && echo 'OPENVPN_CONFIG=""' >> /etc/environment \
     && echo "unset OPENVPN_CONFIG" | tee -a /etc/bash.bashrc > /etc/profile.d/999-unset-openvpn-config.sh \
     && if [ -d "/etc/zsh" ]; then echo "unset OPENVPN_CONFIG" >> /etc/zsh/zshenv; fi
-ENV EVP ${{env.ENABLEVPN}}

@@ -48,7 +48,10 @@
 			"ZZB": "${containerEnv:ENABLEVPN}",
 			"ZZC": "${ env:DAY_OF_WEEK }",
 			"ZZD": "${ env:REP_VPN }",
-			"ZZE": "${ env:ENABLEVPN }"
+			"ZZE": "${ env:ENABLEVPN }",
+			"ZZF": "${containerEnv}",
+			"ZZG": "${containerEnv ENABLEVPN}",
+			"ZZH": "${containerEnv:ENABLEVPN}:non"
 			//I agree, we support ${env:XYZ} and ${localWorkspaceFolder}. (${localEnv:XYZ} and ${containerEnv} in Insiders.)
 	},
 	
