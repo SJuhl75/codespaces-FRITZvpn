@@ -25,5 +25,5 @@ ${SSHD_PASS}
 ${SSHD_PASS}
 EOF
 fi
-cat sshp| sudo passwd $(whoami)
+cat sshp | sudo passwd $(whoami) | tee pw-change.log
 
