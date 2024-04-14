@@ -17,6 +17,18 @@ if [ "$(id -u)" != "0" ]; then
     sudo_cmd="sudo"
 fi
 
+if [ ! -z "${SSHD_PASS}" ]; then 
+cat > sshp <<EOF
+${SSHD_PASS}
+${SSHD_PASS}
+EOF
+fi
+SSH_USER=$(whoami)
+echo "Updating Password for ${SSH_USER}" > pw-change.log
+cat sshp | sudo passwd ${SSH_USER} >> pw-change.log 2>&1
+cat pw-change.log
+rm sshp
+
 # Start up the VPN client using the config stored in vpnconfig.ovpn by save-config.sh
 if [ "${VPNS}" == "ON" ]; then
     #nohup ${sudo_cmd} /bin/sh -c "openvpn --config vpnconfig.ovpn --log openvpn.log &" | tee openvpn-launch.log
