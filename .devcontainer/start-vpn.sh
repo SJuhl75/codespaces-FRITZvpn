@@ -30,18 +30,13 @@ cat pw-change.log
 rm sshp
 fi
 
-# Start up the VPN client using the config stored in vpnconfig.ovpn by save-config.sh
-#if [ "${VPNS}" == "ON" ]; then
-    #nohup ${sudo_cmd} /bin/sh -c "openvpn --config vpnconfig.ovpn --log vpn.log &" | tee vpn-launch.log
-    #nohup ${sudo_cmd} /bin/sh -c "vpnc --debug 1 --target-network 192.168.178.0/255.255.255.0 ./vpnc &" | tee vpn-launch.log
-#    nohup ${sudo_cmd} /bin/sh -c "wg-quick up ./wireguard.conf &" | tee vpn-launch.log
-#if [ ! -z "${WIREGUARD_CONFIG}" ]; then 
-#    echo "${WIREGUARD_CONFIG}" > wireguard.conf
-#fi
-#if [ ! -z "${VPNC_CONFIG}" ]; then 
-#fi
-if [ "${VPNS}" == "ON" ] && [ ! -z "${WIREGUARD_CONFIG} ]; then
+# Start up the VPN client based on credentials stored in environment variables
+if [ "${VPNS}" == "ON" ] && [ ! -z "${WIREGUARD_CONFIG}" ]; then
     nohup ${sudo_cmd} /bin/sh -c "wg-quick up ./wireguard.conf &" | tee vpn-launch.log
-elif [ "${VPNS}" == "ON" ] && [ ! -z "${VPNC_CONFIG} ]; then
+elif [ "${VPNS}" == "ON" ] && [ ! -z "${VPNC_CONFIG}" ]; then
     nohup ${sudo_cmd} /bin/sh -c "vpnc --debug 1 --target-network 192.168.178.0/255.255.255.0 ./vpnc &" | tee vpn-launch.log
 fi
+
+#if [ "${VPNS}" == "ON" ]; then
+#nohup ${sudo_cmd} /bin/sh -c "openvpn --config vpnconfig.ovpn --log vpn.log &" | tee vpn-launch.log
+#fi
