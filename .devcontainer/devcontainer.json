@@ -13,14 +13,15 @@
 		},
 		"ghcr.io/bartventer/arch-devcontainer-features/common-utils": {
 			"version": "latest",
-			"configureZshAsDefaultShell": true,
-			"installOhMyZsh": true,
-			"installOhMyZshConfig": true
-		},
-		"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
-			"version": "latest",
-			"packages": "curl,joe"
+			"additionalPackages": "curl,joe"
+			//"configureZshAsDefaultShell": "true"
+			//"installOhMyZsh": "true",
+			//"installOhMyZshConfig": "true"
 		}
+		//"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
+		//	"version": "latest",
+		//	"packages": "curl,joe"
+		//}
     },
 	
 	// Make sure user vscode is available
