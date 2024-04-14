@@ -35,7 +35,9 @@
 	
 	"containerEnv": {
 		"ZNODE_ENV": "production",
-		"ZAPI_KEY": "your-api-key"
+		"ZAPI_KEY": "your-api-key",
+		"ZZZG": "${REP_VPN:NONE}",
+		"ZZZTG": "${ENABLEVPN:NONE}"
 	},
 	"remoteEnv": {
 			"ZNODE_ENV": "development",
