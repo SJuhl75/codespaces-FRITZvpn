@@ -13,11 +13,15 @@
 		}
     },
 	
+	// Make sure user vscode is available
 	"overrideFeatureInstallOrder": ["ghcr.io/devcontainers/features/common-utils"],
-	//"overrideFeatureInstallOrder": [ "ghcr.io/devcontainers/features/node" ]
 
 	// Allow the container to interact with host networking
-	"runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW", "--device=/dev/net/tun"],
+	"runArgs": [
+		"--cap-add=NET_ADMIN", 
+		"--cap-add=NET_RAW", 
+		"--device=/dev/net/tun",
+		"--env-file",".devcontainer/devcontainer.env"],
 
 	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/openvpn-tmp
 	"initializeCommand": "bash .devcontainer/save-config.sh",
@@ -45,7 +49,8 @@
 			"ZDB_HOST": "localhost",
 			"ZDB_PORT": "5432",
 			"ZZH": "${containerEnv:ENABLEVPN:non}",
-			"ZZA": "${env:ENABLEVPN}"
+			"ZZA": "${env:ENABLEVPN}",
+			"ZZC": "${localEnv:ENABLEVPN}"
 			//I agree, we support ${env:XYZ} and ${localWorkspaceFolder}. (${localEnv:XYZ} and ${containerEnv} in Insiders.)
 	},
 	
