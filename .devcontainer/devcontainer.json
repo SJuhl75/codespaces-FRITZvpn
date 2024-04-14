@@ -21,7 +21,9 @@
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	//"remoteUser": "vscode"
 	
-	"containerEnv": { "REP_VPN": "${REP_VPN}" },
+	//"localEnv": { 	"REP_VPN": "${containerEnv:REP_VPN:NONE}",
+	"remoteEnv": { "REP_VPN": "${containerEnv:REP_VPN:NONE}" },
+	//"containerEnv": { "REP_VPN": "${containerEnv:REP_VPN:NONE}" },
 	//"EnVPN": ${{containerEnv:VARIABLE_NAME:default_value}},
 	//"${containerEnv:REP_VPN:"OFF"}",
 	// A default value for when the environment variable is not set can be given with ${containerEnv:VARIABLE_NAME:default_value}.
