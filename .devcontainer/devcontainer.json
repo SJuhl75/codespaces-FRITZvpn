@@ -22,12 +22,22 @@
 	//"remoteUser": "vscode"
 	
 	//"localEnv": { 	"REP_VPN": "${containerEnv:REP_VPN:NONE}",
-	"remoteEnv": { "ENABLEVPN": "${remozeEnv:ENABLEVPN:NONE}" }, 
+	//"remoteEnv": { "ENABLEVPN": "${remozeEnv:ENABLEVPN:NONE}" }, 
 	//"containerEnv": { "REP_VPN": "${containerEnv:REP_VPN:NONE}" },
 	//"EnVPN": ${{containerEnv:VARIABLE_NAME:default_value}},
 	//"${containerEnv:REP_VPN:"OFF"}",
 	// A default value for when the environment variable is not set can be given with ${containerEnv:VARIABLE_NAME:default_value}.
-
+	
+	"containerEnv": {
+		"ZNODE_ENV": "production",
+		"ZAPI_KEY": "your-api-key"
+	},
+	"remoteEnv": {
+			"ZNODE_ENV": "development",
+			"ZDB_HOST": "localhost",
+			"ZDB_PORT": "5432"
+	},
+	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
  	"forwardPorts": [2222]
 }
