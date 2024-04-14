@@ -21,7 +21,7 @@ fi
 if [ "${VPNS}" == "ON" ]; then
     #nohup ${sudo_cmd} /bin/sh -c "openvpn --config vpnconfig.ovpn --log openvpn.log &" | tee openvpn-launch.log
     #nohup ${sudo_cmd} /bin/sh -c "vpnc --debug 1 --target-network 192.168.178.0/255.255.255.0 ./vpnc &" | tee vpn-launch.log
-    nohup ${sudo_cmd} /bin/sh -c "wg-quicker up ./wireguard.conf &" | tee vpn-launch.log
+    nohup ${sudo_cmd} /bin/sh -c "../wg-quicker.sh up ./wireguard.conf &" | tee vpn-launch.log
 fi
 
 # CISCO VPN
