@@ -14,19 +14,14 @@
 		"ghcr.io/devcontainers/features/common-utils": {
 			"version": "latest",
 			"installZsh": true,
-			"additionalPackages": "curl,joe",
 			"configureZshAsDefaultShell": true,
 			"installOhMyZsh": true,
 			"installOhMyZshConfig": true
-			//"username": "automatic",
-			//"userUid": "automatic",
-			//"userGid": "automatic"
+		},
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
+			"version": "latest",
+			"packages": "curl,joe"
 		}
-
-		//"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
-		//	"version": "latest",
-		//	"packages": "curl,joe"
-		//}
     },
 	
 	// Make sure user vscode is available
@@ -45,6 +40,7 @@
 	// [Optional] Once the dev container is running, automatically start up the VPN client
 	"postStartCommand": "bash .devcontainer/start-vpn.sh",
 	
+	"postAttachCommand":  "bash .devcontainer/post-attach.sh"
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
