@@ -20,7 +20,7 @@
 		},
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
 			"version": "latest",
-			"packages": "iptabels,curl,joe" // iptables necessary for wireguard
+			"packages": "iptables,curl,joe" // iptables necessary for wireguard
 		}
     },
 	
