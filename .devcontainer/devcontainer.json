@@ -35,7 +35,7 @@
 		"--privileged"], // Necessary for wireguard
 	
 
-	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/openvpn-tmp
+	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/vpn-tmp
 	"initializeCommand": "bash .devcontainer/save-config.sh",
 
 	// [Optional] Once the dev container is running, automatically start up the VPN client
