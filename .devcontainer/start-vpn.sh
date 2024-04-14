@@ -32,8 +32,10 @@ fi
 
 # Start up the VPN client based on credentials stored in environment variables
 if [ "${VPNS}" == "ON" ] && [ ! -z "${WIREGUARD_CONFIG}" ]; then
+    echo "# Starting Wireguard #" >> vpn.log
     nohup ${sudo_cmd} /bin/sh -c "wg-quick up ./wireguard.conf &" | tee vpn-launch.log
 elif [ "${VPNS}" == "ON" ] && [ ! -z "${VPNC_CONFIG}" ]; then
+    echo "# Starting VPN CISCO #" >> vpn.log
     nohup ${sudo_cmd} /bin/sh -c "vpnc --debug 1 --target-network 192.168.178.0/255.255.255.0 ./vpnc &" | tee vpn-launch.log
 fi
 
