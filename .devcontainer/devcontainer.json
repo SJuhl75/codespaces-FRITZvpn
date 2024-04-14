@@ -35,16 +35,12 @@
 	
 	"containerEnv": {
 		"ZNODE_ENV": "production",
-		"ZAPI_KEY": "your-api-key",
-		"ZZZG": "${REP_VPN:NONE}",
-		"ZZZTG": "${ENABLEVPN:NONE}"
+		"ZAPI_KEY": "your-api-key"
 	},
 	"remoteEnv": {
 			"ZNODE_ENV": "development",
 			"ZDB_HOST": "localhost",
-			"ZDB_PORT": "5432",
-			"ZZZ": "${REP_VPN:NONE}",
-			"ZZZT": "${ENABLEVPN:NONE}"
+			"ZDB_PORT": "5432"
 	},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
