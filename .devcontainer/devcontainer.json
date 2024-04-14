@@ -3,12 +3,16 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
+	
 	"features": {
 		"ghcr.io/devcontainers/features/sshd:1": {
             		"version": "latest"
         	}
         },
 	
+	"overrideFeatureInstallOrder": ["ghcr.io/devcontainers/features/common-utils"],
+	//"overrideFeatureInstallOrder": [ "ghcr.io/devcontainers/features/node" ]
+
 	// Allow the container to interact with host networking
 	"runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW", "--device=/dev/net/tun"],
 
@@ -17,9 +21,10 @@
 
 	// [Optional] Once the dev container is running, automatically start up the VPN client
 	"postStartCommand": "bash .devcontainer/start-vpn.sh",
+	
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-	//"remoteUser": "vscode"
+	"remoteUser": "vscode",
 	
 	//"localEnv": { 	"REP_VPN": "${containerEnv:REP_VPN:NONE}",
 	//"remoteEnv": { "ENABLEVPN": "${remozeEnv:ENABLEVPN:NONE}" }, 
@@ -35,7 +40,9 @@
 	"remoteEnv": {
 			"ZNODE_ENV": "development",
 			"ZDB_HOST": "localhost",
-			"ZDB_PORT": "5432"
+			"ZDB_PORT": "5432",
+			"ZZZ": "${containerEnv:REP_VPN:NONE}",
+			"ZZZT": "${containerEnv:ENABLEVPN:NONE}"
 	},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
