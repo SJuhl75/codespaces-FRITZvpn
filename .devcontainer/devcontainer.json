@@ -12,8 +12,8 @@
 			"version": "latest"
 		},
 		"ghcr.io/bartventer/arch-devcontainer-features/common-utils": {
-			"version": "latest",
-			"additionalPackages": "curl,joe"
+			"version": "latest"
+			//"additionalPackages": "curl,joe"
 			//"configureZshAsDefaultShell": "true"
 			//"installOhMyZsh": "true",
 			//"installOhMyZshConfig": "true"
