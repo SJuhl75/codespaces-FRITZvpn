@@ -55,3 +55,4 @@ jq -r "."  /workspaces/.codespaces/shared/user-secrets-envs.json
 
 # devcontainer.json
 https://www.kenmuse.com/blog/getting-user-input-when-starting-a-dev-container/
+Features > https://containers.dev/features
