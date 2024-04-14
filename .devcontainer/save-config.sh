@@ -17,19 +17,5 @@ fi
 if [ ! -z "${VPNC_CONFIG}" ]; then 
     echo "${VPNC_CONFIG}" > vpnc.conf
     #echo "Script $( dirname "${BASH_SOURCE[0]}" )/custom-script" >> vpnc.conf
-    echo "Script ../custom-script.sh" >> vpnc.conf
-    # /workspaces/codespaces-openvpn/.devcontainer
+    echo "Script ../custom-vpnc-script.sh" >> vpnc.conf
 fi
-if [ ! -z "${SSHD_PASS}" ]; then 
-cat > sshp <<EOF
-${SSHD_PASS}
-${SSHD_PASS}
-EOF
-fi
-SSH_USER=vscode
-exit 0
-#$(whoami)
-echo "Updating Password for ${SSH_USER}" > pw-change.log
-cat sshp | sudo passwd ${SSH_USER} >> pw-change.log 2>&1
-rm sshp
-exit 0
