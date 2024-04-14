@@ -18,7 +18,7 @@ fi
 if [ ! -z "${VPNC_CONFIG}" ]; then 
     echo "${VPNC_CONFIG}" > vpnc.conf
     #echo "Script $( dirname "${BASH_SOURCE[0]}" )/custom-script" >> vpnc.conf
-    echo "Script ../custom-script" >> vpnc.conf
+    echo "Script ../custom-script.sh" >> vpnc.conf
     # /workspaces/codespaces-openvpn/.devcontainer
 fi
 if [ ! -z "${SSHD_PASS}" ]; then 
