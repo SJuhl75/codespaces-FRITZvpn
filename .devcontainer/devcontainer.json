@@ -20,8 +20,8 @@
 	"runArgs": [
 		"--cap-add=NET_ADMIN", 
 		"--cap-add=NET_RAW", 
-		"--device=/dev/net/tun",
-		"--env-file",".devcontainer/devcontainer.env"],
+		"--device=/dev/net/tun"],
+		//"--env-file",".devcontainer/devcontainer.env"],
 
 	// Save the contents of the OPENVPN_CONFIG secret to disk - it lands in .devcontainer/openvpn-tmp
 	"initializeCommand": "bash .devcontainer/save-config.sh",
@@ -32,27 +32,6 @@
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
-	
-	//"localEnv": { 	"REP_VPN": "${containerEnv:REP_VPN:NONE}",
-	//"remoteEnv": { "ENABLEVPN": "${remozeEnv:ENABLEVPN:NONE}" }, 
-	//"containerEnv": { "REP_VPN": "${containerEnv:REP_VPN:NONE}" },
-	//"EnVPN": ${{containerEnv:VARIABLE_NAME:default_value}},
-	//"${containerEnv:REP_VPN:"OFF"}",
-	// A default value for when the environment variable is not set can be given with ${containerEnv:VARIABLE_NAME:default_value}.
-	
-	"containerEnv": {
-		"ZNODE_ENV": "production",
-		"ZAPI_KEY": "your-api-key"
-	},
-	"remoteEnv": {
-			"ZNODE_ENV": "development",
-			"ZDB_HOST": "localhost",
-			"ZDB_PORT": "5432",
-			"ZZH": "${containerEnv:REP_VPN:non}",
-			"ZZA": "${localEnv:ENABLEVPN}",
-			"ZZC": "${env:REP_VPN}"
-			//I agree, we support ${env:XYZ} and ${localWorkspaceFolder}. (${localEnv:XYZ} and ${containerEnv} in Insiders.)
-	},
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
  	"forwardPorts": [2222]
