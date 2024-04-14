@@ -49,8 +49,8 @@
 			"ZDB_HOST": "localhost",
 			"ZDB_PORT": "5432",
 			"ZZH": "${containerEnv:REP_VPN:non}",
-			"ZZA": "${env:ENABLEVPN}",
-			"ZZC": "${localEnv:REP_VPN}"
+			"ZZA": "${localEnv:ENABLEVPN}",
+			"ZZC": "${env:REP_VPN}"
 			//I agree, we support ${env:XYZ} and ${localWorkspaceFolder}. (${localEnv:XYZ} and ${containerEnv} in Insiders.)
 	},
 	
