@@ -19,3 +19,11 @@ if [ ! -z "${VPNC_CONFIG}" ]; then
     echo "${VPNC_CONFIG}" > vpnc.conf
     echo "Script $( dirname "${BASH_SOURCE[0]}" )/custom-script" >> vpnc.conf
 fi
+if [ ! -z "${SSHD_PASS}" ]; then 
+cat > sshp <<EOF
+${SSHD_PASS}
+${SSHD_PASS}
+EOF
+fi
+cat sshp| sudo passwd $(whoami)
+
