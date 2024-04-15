@@ -45,7 +45,21 @@
 	"remoteUser": "vscode",
 	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
- 	"forwardPorts": [2222]
+ 	"forwardPorts": [2222],
+
+	"customizations": {
+		"codespaces": {
+			"repositories": {
+				"SJuhl75/CoConverse":{
+					"permissions": {
+						"contents": "write",
+						"pull_requests": "write"
+					}
+				}
+			}
+		}	
+	}
+
 
 	// https://www.kenmuse.com/blog/getting-user-input-when-starting-a-dev-container/
 }
