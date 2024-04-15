@@ -53,12 +53,25 @@
 				"SJuhl75/CoConverse":{
 					"permissions": {
 						"contents": "write",
-						"pull_requests": "write"
+						"pull_requests": "write",
+						"statuses": "write"
 					}
 				}
 			}
 		}	
 	}
+	// actions - read / write
+	// checks - read / write
+	// contents - read / write
+	// deployments - read / write
+	// discussions - read / write
+	// issues - read / write
+	// packages - read
+	// pages - read / write
+	// pull_requests - read / write
+	// repository_projects - read / write
+	// statuses - read / write
+	// workflows - write
 
 
 	// https://www.kenmuse.com/blog/getting-user-input-when-starting-a-dev-container/
