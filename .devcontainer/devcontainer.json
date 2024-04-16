@@ -50,7 +50,7 @@
 	"customizations": {
 		"codespaces": {
 			"repositories": {
-				"SJuhl75/CoConverse":{
+				"CoConverse":{
 					"permissions": {
 						"contents": "write",
 						"pull_requests": "write",
