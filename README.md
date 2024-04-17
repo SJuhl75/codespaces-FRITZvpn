@@ -57,3 +57,4 @@ jq -r "."  /workspaces/.codespaces/shared/user-secrets-envs.json
 https://www.kenmuse.com/blog/getting-user-input-when-starting-a-dev-container/
 Features > https://containers.dev/features
 https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/quickstart-for-writing-on-github
+https://docs.github.com/en/enterprise-cloud@latest/codespaces/managing-your-codespaces/managing-repository-access-for-your-codespaces#setting-additional-repository-permissions 

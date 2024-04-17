@@ -52,6 +52,7 @@
 			"repositories": {
 				"CoConverse":{
 					"permissions": {
+						"permissions": "write-all"
 						"contents": "write",
 						"pull_requests": "write",
 						"statuses": "write"
