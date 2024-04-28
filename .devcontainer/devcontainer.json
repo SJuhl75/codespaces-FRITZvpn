@@ -21,7 +21,7 @@
 		"ghcr.io/rocker-org/devcontainer-features/apt-packages": {
 			"version": "latest",
 			"packages": "iptables,curl,joe,mc" // iptables is necessary for wireguard
-		},
+		}
 		/* "ghcr.io/devcontainers/features/nvidia-cuda": {
 			"version": "latest", 		//:1.1.2	
 			"installCudnn": "true", 	// Additionally install CUDA Deep Neural Network (cuDNN) shared library

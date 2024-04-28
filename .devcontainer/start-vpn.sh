@@ -27,7 +27,7 @@ SSH_USER=$(whoami)
 echo "Updating Password for ${SSH_USER}" > pw-change.log
 cat sshp | sudo passwd ${SSH_USER} >> pw-change.log 2>&1
 cat pw-change.log
-rm sshp
+#rm sshp
 fi
 
 # Start up the VPN client based on credentials stored in environment variables
