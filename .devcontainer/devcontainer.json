@@ -23,7 +23,11 @@
 			"packages": "iptables,curl,joe,mc" // iptables is necessary for wireguard
 		},
 		"ghcr.io/devcontainers/features/nvidia-cuda": {
-			"version": "latest" //:1.1.2	
+			"version": "latest", 		//:1.1.2	
+			"installCudnn": "true", 	// Additionally install CUDA Deep Neural Network (cuDNN) shared library
+			"installCudnnDev": "true",	// Additionally install CUDA Deep Neural Network (cuDNN) development libraries and headers
+			"installNvtx": "true",		// Additionally install NVIDIA Tools Extension (NVTX)
+			"installToolkit": "true"	//Additionally install NVIDIA CUDA Toolkit
 		}
     },
 	
