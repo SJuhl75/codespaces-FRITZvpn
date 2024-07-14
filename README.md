@@ -61,3 +61,13 @@ https://docs.github.com/en/enterprise-cloud@latest/codespaces/managing-your-code
 https://github.blog/2016-02-01-working-with-submodules/
 
 git submodule add https://github.com/SJuhl75/dabex.git dabex.lnk
+
+ssh-keygen -t rsa -b 4096 -C "stefanjuhl75@gmail.com"
+Your identification has been saved in /home/vscode/.ssh/id_rsa
+Your public key has been saved in /home/vscode/.ssh/id_rsa.pub
+
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+
+xclip -sel clip < ~/.ssh/id_rsa.pub
+sudo apt install xclip
