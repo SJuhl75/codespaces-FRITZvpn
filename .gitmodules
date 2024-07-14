@@ -4,3 +4,6 @@
 [submodule "dab3"]
 	path = dab3
 	url = git@github.com:SJuhl75/dabex.git
+[submodule "RTKLIB"]
+	path = RTKLIB
+	url = git@github.com:SJuhl75/RTKLIB.git
