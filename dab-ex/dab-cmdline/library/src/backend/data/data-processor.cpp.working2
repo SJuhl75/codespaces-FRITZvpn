@@ -1,0 +1,338 @@
+#
+/*
+ *    Copyright (C) 2015
+ *    Jan van Katwijk (J.vanKatwijk@gmail.com)
+ *    Lazy Chair Programming
+ *
+ *    This file is part of DAB library
+ *    DAB library is free software; you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation; either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *    DAB library is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with DAB library; if not, write to the Free Software
+ *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+#
+#include	"dab-constants.h"
+#include	"data-processor.h"
+#include	"virtual-datahandler.h"
+#include	"mot-handler.h"
+#include        "tdc-datahandler.h"
+
+//      11-bit from HandleFIG0Extension13, see ETSI TS 101 756 table 16
+// AppType -> https://www.etsi.org/deliver/etsi_ts/101700_101799/101756/02.02.01_60/ts_101756v020201p.pdf
+char *getUserApplicationType (int16_t appType) {
+	char *buffer = (char *)malloc(30);
+        switch (appType) {
+           case 1:     return "Dynamic labels (X-PAD only)";
+           case 2:     return "MOT Slide Show";		// ETSI TS 101 499
+           case 3:     return "MOT Broadcast Web Site";
+           case 4:     return "TPEG";			// ETSI TS 103 551
+           case 5:     return "DGPS";
+           case 6:     return "TMC";
+           case 7:     return "SPI, was EPG";		// ETSI TS 102 818
+           case 8:     return "DAB Java";
+           case 9:     return "DMB";			// ETSI TS 102 428
+           case 0x00a: return "IPDC services";
+           case 0x00b: return "Voice applications";
+           case 0x00c: return "Middleware";
+           case 0x00d: return "Filecasting";		// ETSI TS 102 979
+           case 0x44a: return "Journaline";
+           default:
+	       sprintf(buffer, "(0x%04x)", appType);;
+	       return buffer;
+        }
+        return "";
+}
+
+const char *getPacketType (int8_t PacketType) {
+        switch (PacketType) {
+           case 0:     return "I"; // Intermediate
+           case 1:     return "L"; // Last
+           case 2:     return "F"; // First
+        }
+        return "S"; // Single
+}
+
+
+/* const char *print_buffer_hex(const uint8_t* buffer, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        std::printf("%02X ", buffer[i]);
+    }
+    std::printf("\n");
+    return " ";
+}*/
+
+
+//	\class dataProcessor
+//	The main function of this class is to assemble the 
+//	MSCdatagroups and dispatch to the appropriate handler
+//
+//	fragmentsize == Length * CUSize
+	dataProcessor::dataProcessor	(int16_t	bitRate,
+	                                 packetdata	*pd,
+	                                 API_struct	*p,
+	                                 void	        *ctx) {
+
+	this	-> bitRate		= pd -> bitRate;
+	this	-> DSCTy		= pd -> DSCTy;
+	this	-> appType		= pd -> appType;
+	this	-> packetAddress	= pd -> packetAddress;
+	this	-> DGflag		= pd -> DGflag;
+	this	-> FEC_scheme		= pd -> FEC_scheme;
+	this	-> bytesOut		= p  -> bytesOut_Handler;
+	this    -> mscQuality   	= p -> program_quality_Handler; // added S. Juhl
+	this	-> ctx			= ctx;
+	
+//	const char *appTypeName = getUserApplicationType(pd -> appType);
+//	printf("Application Type Name: %s\n", appTypeName);
+	
+//	fprintf (stderr, "DP: DSCTy=%d app=%s dataHandler=", pd -> DSCTy, appTypeName);
+//	fprintf (stderr, "DP: DSCTy=%d app=%d\n", pd -> DSCTy, getUserApplicationType(pd -> appType));
+	fprintf (stderr, "** dataProcessor: appType=%d FEC=%d DSCTy=%d (", pd -> appType, FEC_scheme, pd -> DSCTy);
+	switch (DSCTy) {
+	   default:
+	      fprintf(stderr,"virtual)\n");
+	      my_dataHandler	= new virtual_dataHandler ();
+	      break;
+
+	   case 5:			// do know yet
+	      fprintf(stderr,"TDC)\n");
+	      my_dataHandler	= new tdc_dataHandler (appType, bytesOut, ctx);
+	      break;
+
+	   case 60:
+	      fprintf(stderr,"MOT)\n");
+	      my_dataHandler	= new motHandler (p -> motdata_Handler, ctx);
+	      break;
+	}
+
+	packetState	= 0;
+}
+
+	dataProcessor::~dataProcessor	(void) {
+	delete		my_dataHandler;
+}
+
+
+void	dataProcessor::addtoFrame (uint8_t *outV) {
+//	There is - obviously - some exception, that is
+//	when the DG flag is on and there are no datagroups for DSCTy5
+	   if ((this -> DSCTy == 5) &&
+	       (this -> DGflag)) {	// no datagroups
+              fprintf(stderr, "** DBG Data group status = ");
+	      fprintf(stderr,"TDCAsyncstream\n");
+	      handleTDCAsyncstream (outV, 24 * bitRate);
+	   } else {
+	      handlePackets (outV, 24 * bitRate);
+	   }
+}
+//
+//	While for a full mix data and audio there will be a single packet in a
+//	data compartment, for an empty mix, there may be many more
+void	dataProcessor::handlePackets (uint8_t *data, int16_t length) {
+	while (true) {
+	   int16_t pLength = (getBits_2 (data, 0) + 1) * 24 * 8;
+	   if (length < pLength) {	// be on the safe side
+	      fprintf(stderr, "*!* DBG packet length mismatch %d!=%d\n",length,pLength);
+	      return;
+	   }
+	   handlePacket (data);
+	   length -= pLength;
+	   if (length < 2)
+	      return;
+	   data	= &(data [pLength]);
+	}
+}
+//
+//	Handle a single DAB packet:
+//	Note, although not yet encountered, the standard says that
+//	there may be multiple streams, to be identified by
+//	the address. For the time being we only handle a single
+//	stream!!!!
+//	see section 5.3.2 of EN 300 401
+void	dataProcessor::handlePacket (uint8_t *data) {
+int16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;	// 24-96 bytes
+int16_t	continuityIndex	= getBits_2 (data, 2);			// linking packages
+int16_t	firstLast	= getBits_2 (data, 4);			// packet type
+int16_t	address		= getBits   (data, 6, 10);		// 0 -> only for padding
+uint16_t command	= getBits_1 (data, 16);			// 0 data / 1 command packet
+int16_t	usefulLength	= getBits_7 (data, 17);			// unsigned binary number of bytes ..91
+uint16_t	i,j;
+uint8_t	temp;
+	if (usefulLength > 0)
+//	fprintf (stderr, "Len=%d/%d+,CI=%d,addr=0x%03X,dc=%d,fl=%s\n",usefulLength,packetLength,continuityIndex,
+//		address,command,getPacketType(firstLast));
+//	fprintf (stderr, "CI = %d, addr = %d, paddr=%d, usefulLength = %d\n",
+//	                 continuityIndex, address, packetAddress, usefulLength);
+
+	(void)continuityIndex;
+	(void)command;
+	// According to Annex E / ITU-T X.25
+/*	if (!check_CRC_bits (data, packetLength * 8)) {
+	   crcErrors ++;
+	   fprintf(stderr, "** DBG: CRC NOK .....");
+	   return;
+	} else {*/ fprintf(stderr,"** DBG: CRC ??? .....");//}
+	      for (i = 0; i < packetLength; i++) {    
+	          temp = 0; for (j = 0; j < 8; j ++) {
+	            temp = (temp << 1) | (data [(i+0) * 8 + j] & 01); 	// V [i * 8 + j] & 01 -> Bitpuffer
+	          }
+	          fprintf(stderr,"%02x",temp);  
+	      } fprintf(stderr,"\n");
+
+	
+	if (address == 0) {
+//	   fprintf(stderr, "** DBG: address=0!\n");
+	   return;		// padding packet
+	}
+//
+	if (address != packetAddress) {	// sorry, other stream
+	   fprintf(stderr, "** DBG: Stream mismatch %d!=%d\n",address,packetAddress);
+	   return;
+	}
+	
+//	assemble the full MSC datagroup
+	if (packetState == 0) {	// waiting for a start
+	   if (firstLast == 02) {	// first packet
+	      packetState = 1;
+//	      series. resize (usefulLength * 8);
+//	      for (i = 0; i < series. size (); i ++)
+//	         series [i] = data [24 + i];
+	      Packet2Arr(data, usefulLength);
+	   }
+	   else
+	   if (firstLast == 03) {	// single packet, mostly padding
+//	      series. resize (usefulLength * 8);
+//	      for (i = 0; i < series. size (); i ++)
+//	         series [i] = data [24 + i];
+	      Packet2Arr(data, usefulLength);
+
+	      //print_buffer_hex(series.data(), series.size());
+//	      fprintf(stderr, "** DBG: Got %ld data bytes.\n",series.size());
+	      my_dataHandler	-> add_mscDatagroup (series);
+	   }
+	   else 
+	      series. resize (0);	// packetState remains 0
+	}
+	else
+	if (packetState == 01) {	// within a series
+	   if (firstLast == 0) {	// intermediate packet
+//	      int32_t currentLength = series. size ();
+//	      series. resize (currentLength + 8 * usefulLength);
+//	      for (i = 0; i < 8 * usefulLength; i ++)
+//	         series [currentLength + i] = data [24 + i];
+	      Packet2Arr(data, usefulLength);
+	   }
+	   else
+	   if (firstLast == 01) {	// last packet
+//	      int32_t currentLength = series. size ();
+//	      series. resize (currentLength + 8 * usefulLength);
+//	      for (i = 0; i < 8 * usefulLength; i ++)
+//	         series [currentLength + i] = data [24 + i];
+	      Packet2Arr(data, usefulLength);
+
+//	      print_buffer_hex(series.data(), series.size());
+//	      fprintf(stderr, "** DBG: Got %ld data bytes.\n",series.size());
+	      my_dataHandler	-> add_mscDatagroup (series);
+	      packetState = 0;
+	   }
+	   else
+	   if (firstLast == 02) {	// first packet, previous one erroneous
+	      packetState = 1;
+//	      series. resize (usefulLength * 8);
+//	      for (i = 0; i < series. size (); i ++)
+//	         series [i] = data [24 + i];
+	      Packet2Arr(data, usefulLength);
+
+	   }
+	   else {
+	      packetState = 0;
+	      series. resize (0);
+	   }
+	}
+}
+//
+// 	Copy data buffer to series array 
+void	dataProcessor::Packet2Arr (uint8_t *data, int16_t length) {
+int32_t currentLength = series. size ();
+uint16_t	i, j, pl,x;
+uint8_t		temp=0;
+uint8_t		debug=0;
+uint16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;	// 24-96 bytes
+
+//	crc = check_CRC_bits (data, packetLength * 8);
+//	fprintf(stderr, "** DBG CRC=%d **\n",crc);
+
+	fprintf(stderr,"** DBG CRC[%d]=",packetLength*8); if (true) {
+	x = !check_CRC_bits (data, packetLength * 8); //) { // && Flag of Sessionheader ...
+	      //if (FEC_scheme != 1) { crcErrors ++; return; }
+	      fprintf(stderr,"FAIL ");
+//	      check_CRC_bits (data, packetLength * 8);
+	      for (i = 0; i < packetLength; i++) {    
+	          temp = 0; for (j = 0; j < 8; j ++) {
+	            temp = (temp << 1) | (data [(i+0) * 8 + j] & 01); 	// V [i * 8 + j] & 01 -> Bitpuffer
+	          }
+	          fprintf(stderr,"%02x",temp);  
+	      } fprintf(stderr,"\n");
+	}  else { fprintf(stderr,"PASS\n"); }
+
+
+	series. resize (currentLength + 8 * length);
+	if (debug == 1) fprintf(stderr,"**!* DBG L=%d\n",length);
+	if (debug == 1) { fprintf(stderr,"** DBG Cpy series[%04d]=0x",currentLength); }
+	for (i = 0; i < 8 * length; i ++) {
+	      series [currentLength + i] = data [24 + i];	//	      print_buffer_hex(series.data(), series.size());
+	}
+	if (debug == 1) { for (i = 0; i <= 10; i++) { fprintf(stderr,"%02X",getBits(data,24+i*8,8)); } }
+	      
+	// Fill FEC frameBytes buffer
+	currentLength = frameBytes. size();
+//	if (debug == 1) { 
+//	fprintf(stderr,"** DBG frameBytes[%03d+%02d]=>",currentLength,length); 
+	frameBytes. resize(currentLength + (3 + length + 2));	// 3 packet header byte + packet data + 2 packet CRC bytes
+//	fprintf(stderr,"%d\n",frameBytes.size());
+	
+	for (i = 0; i < (3 + length + 2); i ++) {      		// packet bytes
+	      temp = 0;
+	      for (j = 0; j < 8; j ++) 
+                    temp = (temp << 1) | (data [i * 8 + j] & 01); // V [i * 8 + j] & 01 -> Bitpuffer
+	      frameBytes [currentLength + i] = temp;
+	      if (debug == 1 && i <=10) fprintf(stderr,"%02X",temp);
+	      if (debug == 1 && i == 2) fprintf(stderr,"|");
+	} if (debug == 1) { 		fprintf(stderr,"\n");}
+//	fprintf(stderr,"** DBG frameBytes[%ld]\n",frameBytes.size());
+	return; // NOTE SKIP the moving BLOCK!
+}
+
+
+//
+//
+//	Really no idea what to do here
+void	dataProcessor::handleTDCAsyncstream (uint8_t *data, int16_t length) {
+int16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;
+int16_t	continuityIndex	= getBits_2 (data, 2);
+int16_t	firstLast	= getBits_2 (data, 4);
+int16_t	address		= getBits   (data, 6, 10);
+uint16_t command	= getBits_1 (data, 16);
+int16_t	usefulLength	= getBits_7 (data, 17);
+
+	(void)	length;
+	(void)	packetLength;
+	(void)	continuityIndex;
+	(void)	firstLast;
+	(void)	address;
+	(void)	command;
+	(void)	usefulLength;
+	fprintf(stderr, "DP: Clueless\n");
+	if (!check_CRC_bits (data, packetLength * 8))
+	   return;
+}
+

@@ -1,0 +1,844 @@
+#
+/*
+ *    Copyright (C) 2015
+ *    Jan van Katwijk (J.vanKatwijk@gmail.com)
+ *    Lazy Chair Programming
+ *
+ *    This file is part of DAB library
+ *    DAB library is free software; you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation; either version 2 of the License, or
+ *    (at your option) any later version.
+ *
+ *    DAB library is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with DAB library; if not, write to the Free Software
+ *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+#
+#include	"dab-constants.h"
+#include	"data-processor.h"
+#include	"virtual-datahandler.h"
+#include	"mot-handler.h"
+#include        "tdc-datahandler.h"
+#include <iomanip>
+
+// NOTES RS DATA TABLE TRANSFER VERIFIED!
+
+
+//      11-bit from HandleFIG0Extension13, see ETSI TS 101 756 table 16
+// AppType -> https://www.etsi.org/deliver/etsi_ts/101700_101799/101756/02.02.01_60/ts_101756v020201p.pdf
+/*char *getUserApplicationType (int16_t appType) {
+	char *buffer = (char *)malloc(30);
+        switch (appType) {
+           case 1:     return "Dynamic labels (X-PAD only)";
+           case 2:     return "MOT Slide Show";		// ETSI TS 101 499
+           case 3:     return "MOT Broadcast Web Site";
+           case 4:     return "TPEG";			// ETSI TS 103 551
+           case 5:     return "DGPS";
+           case 6:     return "TMC";
+           case 7:     return "SPI, was EPG";		// ETSI TS 102 818
+           case 8:     return "DAB Java";
+           case 9:     return "DMB";			// ETSI TS 102 428
+           case 0x00a: return "IPDC services";
+           case 0x00b: return "Voice applications";
+           case 0x00c: return "Middleware";
+           case 0x00d: return "Filecasting";		// ETSI TS 102 979
+           case 0x44a: return "Journaline";
+           default:
+	       sprintf(buffer, "(0x%04x)", appType);;
+	       return buffer;
+        }
+        return "";
+}
+
+const char *getPacketType (int8_t PacketType) {
+        switch (PacketType) {
+           case 0:     return "I"; // Intermediate
+           case 1:     return "L"; // Last
+           case 2:     return "F"; // First
+        }
+        return "S"; // Single
+}*/
+
+
+uint8_t rsf[12][16];	// Array for RS Data Field
+uint8_t pcf[94];	// Array for RS Packet CRC Flag
+
+#include <iostream>
+#include <string>
+
+std::string base64_encode(const unsigned char* data, size_t length) {
+    const std::string base64_chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    std::string encoded;
+    encoded.reserve(((length + 2) / 3) * 4);
+
+    for (size_t i = 0; i < length; i += 3) {
+        unsigned char b1 = data[i];
+        unsigned char b2 = (i + 1 < length) ? data[i + 1] : 0;
+        unsigned char b3 = (i + 2 < length) ? data[i + 2] : 0;
+
+        unsigned char b1_high = (b1 & 0xFC) >> 2;
+        unsigned char b2_high = ((b1 & 0x03) << 4) | ((b2 & 0xF0) >> 4);
+        unsigned char b3_high = ((b2 & 0x0F) << 2) | ((b3 & 0xC0) >> 6);
+        unsigned char b3_low = b3 & 0x3F;
+
+        encoded += base64_chars[b1_high];
+        encoded += base64_chars[b2_high];
+        encoded += (i + 1 < length) ? base64_chars[b3_high] : '=';
+        encoded += (i + 2 < length) ? base64_chars[b3_low] : '=';
+    }
+
+    return encoded;
+}
+
+#include <cstdint>
+#include <cstddef>
+
+// CRC calculation
+//uint16_t calc_crc_bits(const uint8_t* data, size_t size) {
+uint16_t calc_crc_bits(uint8_t *data, uint32_t size) {
+    uint16_t crc = 0xFFFF; // Initial value
+    const ushort generator = 0x1021; /* divisor is 16bit */
+
+    for (size_t byteIndex = 0; byteIndex < size; byteIndex++) {
+          crc ^= (ushort(data[byteIndex]<<15));
+          if ( crc & 0x8000 ) { crc = (ushort((crc<<1) ^ generator));
+          } else { crc <<= 1; }
+    }
+    return ~crc;
+}
+
+
+static inline
+uint16_t  calculateCRC(const uint8_t *msg, int32_t len) {   
+const uint16_t generatorPolynomial = 0x1021; //0b100010000001; // G(x) = X^15 + X^12 + X^5 + 1
+uint16_t        accumulator     = 0xFFFF;
+uint16_t        data,crc;
+int i, j;
+
+        for (i = 0; i < len; i ++) {
+           data = msg [i] << 8;
+           for (j = 8; j > 0; j--) {
+              accumulator = (accumulator << 1) ^ ((data ^ accumulator) & 0x8000 ? generatorPolynomial : 0);
+              data <<= 1;
+           }
+        }
+        crc = msg[len] << 8 | msg[len + 1]; 
+        return ~(crc ^ accumulator);
+}
+
+
+//	\class dataProcessor
+//	The main function of this class is to assemble the 
+//	MSCdatagroups and dispatch to the appropriate handler
+//
+//	fragmentsize == Length * CUSize
+	dataProcessor::dataProcessor	(int16_t	bitRate,
+	                                 packetdata	*pd,
+	                                 API_struct	*p,
+	                                 void	        *ctx):
+	                                 my_rsDecoder (8, 0435, 0, 1, 16) { // 0..9 -> 10 / 0..15 -> 16
+/* NOTE mp4Processor:                    my_rsDecoder (8, 0435, 0, 1, 10),
+	
+	Reed-Solomon RS(120, 110, t = 5) shortened code (see note 1), derived from the original
+	systematic RS(255, 245, t = 5) code, shall be applied to 110 byte portions of each audio
+	super frame to generate an error protected packet .
+	The Reed-Solomon code has length 120 bytes, dimension 110 bytes and allows the correction
+	of up to 5 random erroneous bytes in a received word of 120 bytes. 
+	
+	The shortened Reed-Solomon code may be implemented by adding 135 bytes, all set to zero,
+	before the information bytes at the input of an RS(255, 245, t = 5) encoder. After the RS
+	coding procedure these null bytes shall be discarded, leading to a RS code word of N = 120
+	bytes. 
+		
+	reedSolomon (uint16_t symsize   = 8,	// symbol size, bits (1-8)
+		     uint16_t gfpoly    = 0435, // Field generator polynomial coefficients
+                     uint16_t fcr       = 0,	// first root of RS code generator polynomial, index form, 0
+                     uint16_t prim      = 1,	// primitive element to generate polynomial roots 2->19
+                     uint16_t nroots    = 10);	// RS code generator polynomial degree (number of roots) 16->255
+                     
+	                     
+	to be adjusted -> my_rsDecoder (				
+
+	The code used is the Reed-Solomon RS (204,188, t = 8) shortened code (see note 2), derived
+	from the original systematic RS (255,239, t = 8) code.
+	The Reed-Solomon codeword has length 204 bytes, dimension 188 bytes and allows up to 8 random
+	erroneous bytes in a received word of 204 bytes to be corrected. 
+	
+	The shortened Reed-Solomon code may be implemented by adding 51 bytes, all set to zero,
+	before the information bytes (i.e. one row of the Application Data Table) at the input of an
+	RS (255,239, t = 8) encoder. After the RS coding procedure these null bytes shall be discarded,
+	leading to a RS codeword of N = 204 byte
+	
+	NOTE The primitive polynomials used for the Galois Fields are specified in octal below:
+	     Octal 435 -> w= 8 
+	                  w= 9: 01021
+	                  w=10: 02011
+	Ref. http://web.eecs.utk.edu/~jplank/plank/papers/CS-05-570.html
+	*/
+	this	-> bitRate		= pd -> bitRate;
+	this	-> DSCTy		= pd -> DSCTy;
+	this	-> appType		= pd -> appType;
+	this	-> packetAddress	= pd -> packetAddress;
+	this	-> DGflag		= pd -> DGflag;
+	this	-> FEC_scheme		= pd -> FEC_scheme;
+	this	-> bytesOut		= p  -> bytesOut_Handler;
+	this    -> mscQuality   	= p -> program_quality_Handler; // added S. Juhl
+	this	-> ctx			= ctx;
+        RSDims                  	= 12; 	// mp4: 8 -> 12 rows
+        //frameBytes. resize (RSDims * 204); 	// (RSDims * 120); // 2.448 Bytes (2.256 Bytes of Application Data Table + 192 Bytes RS Data Table)
+        frameBytes.resize(0);
+        outVector.  resize (RSDims * 188); 	// (RSDims * 110); // 2.256 Bytes Application Data Table
+
+        uint8_t ByteBuf [3072];
+        uint16_t BBFidx = 0;
+
+        
+        blockFillIndex  = 0;
+        blocksInBuffer  = 0;
+        curMSC 		= 16; 
+        curPI		= 0;
+        
+        frameCount      = 0;
+        frameErrors     = 0;
+        rsErrors        = 0;
+        crcErrors	= 0;
+
+        frame_quality   = 0;
+        rs_quality      = 0;
+
+	fprintf (stderr, "** dataProcessor: appType=%d FEC=%d DSCTy=%d (", pd -> appType, FEC_scheme, pd -> DSCTy);
+	switch (DSCTy) {
+	   default:
+	      fprintf(stderr,"virtual)\n");
+	      my_dataHandler	= new virtual_dataHandler ();
+	      break;
+
+	   case 5:			// do know yet
+	      fprintf(stderr,"TDC)\n");
+	      my_dataHandler	= new tdc_dataHandler (appType, bytesOut, ctx);
+	      break;
+
+// /opt/qt-dab/src/backend/data/data-processor.cpp
+/*           case 44:
+              my_dataHandler    = new journaline_dataHandler();
+              break;
+
+           case 59:
+              my_dataHandler    = new ip_dataHandler (mr, dataBuffer);
+              break;
+*/
+
+	   case 60:
+	      fprintf(stderr,"MOT)\n");
+	      my_dataHandler	= new motHandler (p -> motdata_Handler, ctx);
+	      break;
+	}
+	packetState	= 0;
+}
+
+	dataProcessor::~dataProcessor	(void) {
+	delete		my_dataHandler;
+}
+
+
+void	dataProcessor::addtoFrame (uint8_t *outV) {
+//	There is - obviously - some exception, that is
+//	when the DG flag is on and there are no datagroups for DSCTy5
+	/* MSC Quality report */
+	
+        if (++frameCount >= 100) {
+              frameCount = 0;
+              frame_quality     = 1 * (100 - frameErrors);
+              rs_quality = 1 * (100 - rsErrors);
+              if (mscQuality != nullptr)
+                 mscQuality (frame_quality, rs_quality, 1*(100-crcErrors), ctx);
+              frameErrors = crcErrors = rsErrors = 0;
+        }
+
+	if ((this -> DSCTy == 5) &&
+	      (this -> DGflag)) {			// no datagroups
+	      handleTDCAsyncstream (outV, 24 * bitRate);
+	} else {
+	      handlePackets (outV, 24 * bitRate);	// Data group packets
+	}
+}
+//
+//	While for a full mix data and audio there will be a single packet in a
+//	data compartment, for an empty mix, there may be many more
+//	TPEG		appType=4	FEC=1 344
+//	TPEG_MM		appType=4	FEC=0 152
+//	PPP-RTK-AdV	appType=1500 	FEC=1 192
+void	dataProcessor::handlePackets (uint8_t *data, int16_t length) {
+int16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;	// 24-96 bytes
+uint8_t	continuityIndex	= getBits_2 (data, 2);			// linking packages
+uint8_t	firstLast	= getBits_2 (data, 4);			// packet type
+uint16_t address		= getBits   (data, 6, 10);		// 0 -> only for padding
+uint16_t command	= getBits_1 (data, 16);			// 0 data / 1 command packet
+uint8_t	usefulLength	= getBits_7 (data, 17);			// unsigned binary number of bytes ..91
+//uint8_t Counter 	= getBits_4 (data, 2);
+uint16_t i,j,ccrc;
+uint8_t MSCIdx;
+	(void)continuityIndex;
+	(void)command;
+
+uint16_t pcrc = getBits(data,(packetLength-2)*8,16);
+uint32_t zeroc = getBits(data,(packetLength-4)*8,16) + getBits(data,(packetLength-6)*8,16) * 0x10000;
+
+	if (FEC_scheme == 1 ) { // && curMSC != 16) { // 96 zero bits vs 2 first/last bits
+	      if ((pcrc == 0x0 && zeroc == 0x0) || address == 1022) { handleRSDF(data); return; }
+	}
+	ccrc=calc_crc_bits (data, (packetLength-2) * 8); // 16 CRC bits
+	Packet2Arr(data, usefulLength, (pcrc != ccrc));
+	return;
+
+
+	
+	if ( pcrc != ccrc ) { // CRC and length check
+	      //if ( usefulLength > 0) 
+	      Packet2Arr(data, usefulLength, true); // but add to framebytes anyway
+	      crcErrors ++; // fprintf(stderr, "** CRC FAIL %04x %04x PL=%d UL=%d\n",ccrc,pcrc,packetLength,usefulLength); 
+	      packetState = 0; return; 
+	} else if ( usefulLength == 0 || address != packetAddress || address == 0) { frameErrors +=(usefulLength!=0); return; } 
+
+	switch (firstLast) {
+	      case 2: { // First data group packet
+		    MSCIdx	= getBits   (data+24,8 ,4);
+		    if (curMSC != 16 && (MSCIdx != ((curMSC+1)&0xf))) { 
+		          fprintf(stderr,"*** MSC DG SEQUENCE CORRUPTED cur=%d last=%d !\n",MSCIdx,curMSC); 
+		          // Obviously, we missed the last packet of the data group ...
+		          // NOTE Corrective action has to be defined!
+		          //applyFEC();
+		    }
+		    curMSC = MSCIdx; // Start a new sequence
+		    curPI = continuityIndex;
+		    uint8_t RepIdx=getBits(data+24,12,4);
+	            fprintf(stderr,"** DBG FLOW FIRST PS=%d PL=%d CI=%d FL=%d adr=%d cmd=%d UL=%d MCI=%d RI=%d\n",packetState,packetLength,continuityIndex,firstLast,address,command,usefulLength,MSCIdx,RepIdx);
+	            //series. resize(0); // frameBytes. resize(0);
+		    Packet2Arr(data, usefulLength, false); // handleFDGPacket (data, usefulLength);
+		    return; }
+	      case 0: { // Intermediate data group packet ... check sequence ..
+	            if (curMSC == 16) return;
+	            if (continuityIndex != ((curPI+1)&3)) { 
+		          fprintf(stderr,"*** MSC DG packet sequence error cur=%d last=%d !\n",continuityIndex,curPI); 
+	            }
+	            curPI=continuityIndex;
+	            //fprintf(stderr,"** DBG FLOW INTER PS=%d PL=%d CI=%d FL=%d adr=%d cmd=%d UL=%d\n",packetState,packetLength,continuityIndex,firstLast,address,command,usefulLength);
+	            Packet2Arr(data, usefulLength, false);
+	            //series.resize(0); frameBytes.resize(0);
+	            return; }
+	      case 1: { // Last data group packet
+                    if (curMSC == 16) return;
+                    if (continuityIndex != ((curPI+1)&3)) { 
+                           fprintf(stderr,"*** MSC DG packet sequence error cur=%d last=%d !\n",continuityIndex,curPI); 
+	            }
+                    curPI=continuityIndex;
+		    fprintf(stderr,"** DBG FLOW LAST! PS=%d PL=%d CI=%d FL=%d adr=%d cmd=%d UL=%d series[%ld] frameBytes[%ld] "
+                            ,packetState,packetLength,continuityIndex,firstLast,address,command,usefulLength,series.size(),frameBytes.size());
+	            // for (i=0; i<length/8; i++ ) { fprintf(stderr,"%02x",getBits(data,i*8,8)); if (i == length/8-3) fprintf(stderr,"|"); } fprintf(stderr,"\n");
+		    Packet2Arr(data, usefulLength, false); 
+		    if (series.size() > 0 ) my_dataHandler -> add_mscDatagroup (series);
+		    return; }
+	      case 3: { // Single packet, mostly padding
+	            if (packetAddress == 2) { // Take special care for PPP-RTK-AdV sync
+	            	  curPI = (curPI+1)&3; curMSC=(curMSC+1)&0xf;
+	            	  fprintf(stderr,"** DBG PPP-RTK-AdV SYNC MSC=%d CI=%d\n",curMSC,curPI);
+  	                  //Packet2Arr(data, usefulLength, true); 
+	            	  //applyFEC();
+	            	  //frameBytes.resize(0);
+	            	  return;
+	            } 
+	            fprintf(stderr,"** DBG Single Packet adr=%d=%d? len=%d bytes=%d fb=%ld 0x",address,packetAddress,usefulLength,blocksInBuffer,frameBytes.size()); 
+	            for (j=0 ; j < 24; j++) { fprintf(stderr,"%02X",getBits(data,j*8,8)); } fprintf(stderr,"\n"); 
+	            break;
+	            }
+	} // Only last data group and single packets pass beyond this switch
+        Packet2Arr(data, usefulLength, false); 
+        if (series.size() > 0 ) my_dataHandler -> add_mscDatagroup (series);
+	return;
+}
+
+//	NOTE VERIFIED! -> CHECK
+//      Handle sequence of FEC packets and RS decoding
+void	dataProcessor::handleRSDF (uint8_t *data ) {
+uint8_t 	temp     = 0;
+uint16_t	rs_dt_pos= 0;
+uint8_t Counter = getBits_4 (data, 2);
+uint16_t	i, j, col,row;
+//int16_t currentLength = frameBytes. size ();
+//int16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;	// 24-96 bytes
+//int16_t	continuityIndex	= getBits_2 (data, 2);			// linking packages
+//uint8_t	PL=0,UL=0;
+
+
+	// Populate Reed-Solomon Data Table
+//	fprintf(stderr,"** DBG RSDF[%d] = ",Counter);
+        for (i = 0; i < 22; i ++) {      
+	      temp = 0; for (j = 0; j < 8; j ++) {
+	            temp = (temp << 1) | (data [(i+2) * 8 + j] & 01); 	// V [i * 8 + j] & 01 -> Bitpuffer
+	      } 
+              rs_dt_pos = 188*12 + 22*Counter + i; if (rs_dt_pos < 2448) frameBytes [rs_dt_pos] = temp;	// skip 6 padding null bytes
+              rs_dt_pos = 22*Counter+i; row=int(rs_dt_pos/12); col=rs_dt_pos % 12;
+//              if (col == 0 && i != 0) fprintf(stderr,"|");
+//              fprintf(stderr,"%02x",temp);
+//              fprintf(stderr,"**** DBG: c=%d i=%d rsf[%d][%d]=%02X ", Counter,i,col,row,temp); 
+              if (22*Counter + i < 192) rsf[col][row]=temp;
+//              fprintf(stderr," V=%02X\n [1][1]=%d\n",rsf[col][row],rsf[1][1]);
+              // NOTE rsf[col][row] NOTE
+	} //fprintf(stderr,"\n"); 
+	
+	// EXIT, if still parts are missing ... paket-state?
+	if (Counter < 8) { packetState=2; return; }
+	if (frameBytes.size() != 0) applyFEC();
+//	} fprintf(stderr, "\n");*/
+	return;
+}
+
+//
+//      Apply reed solomon forward error correction
+/*      (204, 188) Reed-Solomon code is a truncated version of RS(255, 239) code. It deletes the
+	first 51 symbols of RS(255, 239) code since they are all zeros. Therefore, their design
+	and realization methods are similar. RS(204, 188) code is defined on Galois field GF(2^8). */
+void	dataProcessor::applyFEC (void) {
+uint8_t         rsIn    [204]; // 120
+uint8_t         rsOut   [188]; // 110 // 188
+uint8_t         rseIn   [188]; // 120
+uint8_t         rsePB   [204]; // 110 // 188
+uint16_t	j, k;
+uint8_t rse, rsek =0, base             = 0;
+uint8_t crcec=0, fecupd=0;
+//uint16_t primPoly[9] = {07, 013, 023, 045, 0103, 0211, 0435, 01021, 02011};
+
+	// Apply forward error correction
+	fprintf(stderr,"** DBG FEC frameBytes[%ld] MSC=%2d\n",frameBytes.size(),curMSC);
+	for (j = 0; j < frameBytes.size()/24; j++) { crcec+=pcf[j]; }
+	fprintf(stderr,"** DBG FEC CRC[%d/%03ld] Status = ",crcec,frameBytes.size()/24); 
+	for (j = 0; j < frameBytes.size()/24; j++) { fprintf(stderr,"%d",pcf[j]);
+	} fprintf(stderr,"\n** DBG FEC RS Decoder Status = ");
+	if ( frameBytes.size() == 0) { fprintf(stderr,"->EXIT\n"); return; }
+        for (j = 0; j < RSDims; j ++) {
+              for (k = 0; k < 204; k ++) {
+	            // NOTE LINE BELOW IS VERIFIED TO WORK
+	            if (uint32_t(((base + j + k * RSDims) % (RSDims * 204))) < frameBytes.size()) {
+		          rsIn [k] = frameBytes [(base + j + k * RSDims) % (RSDims * 204)]; 	// 120
+		          if (k < 188) rseIn [k] = rsIn [k];
+	            } else { rsIn[k] = 0; }
+		    if (k > 187) {	// OK: fprintf(stderr,"* rsIn[%d]=%02X ? rsf[%d][%d]=%02X\n",k,rsIn[k],j,k-188,rsf[j][k-188]);
+		          rsIn[k] = rsf[j][k-188];	// Copy RS Data Field
+		    } 
+	      } 
+
+//	      fprintf(stderr,"AppDT #%02d: ",j); for (k = 0; k < 188; k++) {
+//	              fprintf(stderr,"%02x",rsIn[k]);
+//              } fprintf(stderr,"\n");  
+              
+/*            NOTE WORKING!  size_t byteArraySize = sizeof(rsIn);
+              std::string base64String = base64_encode(rsIn, byteArraySize);
+              std::cout << base64String << std::endl; */
+
+//	      fprintf(stderr,"DTrcv #%02d: ",j); for (k = 188; k < 204; k++) {
+//	              fprintf(stderr,"%02x",rsIn[k]);
+//              } fprintf(stderr,"\n"); 
+	      rse=(my_rsDecoder. dec( rsIn, rsOut, 51)<0)?1:0; rsek+=rse; //              rsErrors+=(my_rsDecoder. dec( rsIn, rsOut, 51)<0)?1:0; 						// mp4: 135 / 51? -> acc. 5.3.5.1
+
+//	      for (n=1 ; n <2; n++) {
+//		    my_rsDecoder.reset (8, primPoly[n], 0, 1, 16);
+//		    my_rsDecoder.reset (8, 0435, 0, 1, 16); // KEIN EINFLUSS ABLEITBAR 
+//		    for (k=0; k < 204; k++) rsePB[k]=0;
+//		    for (k=0; k < 188; k++) rseIn[k]=k+1;   	   // CHECK! 01...bbbc|c3e75ac28e7055ab3ff2fb9a015221de RSE=OK
+							           //        01...bbbc|c3e75ac28e7055ab3ff2fb9a015221de mit 11 statt 1 als Primzahl 
+							           //                  f57f000028a700ee597c685fe0fcecb5 mit 8 statt 16 Recovery...
+//		    for (k=0; k < 188; k++) rseIn[k]=0x00;     	   // CHECK! 00...0000|00000000000000000000000000000000
+//		    for (k=0; k < 188; k++) rseIn[k]=0xff;     	   // CHECK! ff...ffff|5499304c679a7974189f7f38a5b746d5
+//		    for (k=0; k < 188; k++) rseIn[k]=(k%2)?0xeb:0; // CHECK! 00...00eb|03ae3c65a1ba873d7b7d8ad8aa176ad6 
+//		    for (k=0; k < 188; k++) rseIn[k]=(k%2)?0x2e:0; // CHECK! 00...002e|ffd6908af2a663c5c221ed9a9f8faeeb 
+		    
+/* NOTE Reed-Solomon Verification -> https://scholarworks.calstate.edu/downloads/vh53wz89h
+/       (204, 188) REED-SOLOMON CODE ENCODER/DECODER DESIGN, SYNTHESIS, AND SIMULATION ...
+        A graduate project submitted in partial fulfillment of the requirements 
+        For the degree of Master of Science in Electrical Engineering
+        By Haoyi Zhang
+        sample data table for dt[0]=1, dt[1]=2 .. dt[187]=188
+        k=51 -> 0xc3e75ac28e7055ab3ff2fb9a015221de */
+
+//   	            my_rsDecoder.enc( rseIn, rsePB, 51); //51);
+
+//	            fprintf(stderr,"DTchk #%02d: ",j); for (k = 188; k < 204; k++) {
+//	                  fprintf(stderr,"%02x",rsePB[k]);
+//                    } //fprintf(stderr," poly=%d\n",n);//primPoly[n]);
+
+//	      }
+
+	      fprintf(stderr,"%d",rse); //fprintf(stderr," rse=%d\n",rse);
+//	      fprintf(stderr,"** DBG row=%2d %02x (adr=%d)\n",j,frameBytes [(base + j + 1 * RSDims) % (RSDims * 204)],(base + j + 1 * RSDims) % (RSDims * 204));
+  	      for (k = 0; k < 188; k ++) outVector [j + k * RSDims] = rsOut [k]; 				// Verified OutVector=frameBytes!
+	} fprintf(stderr," / Updates=");
+	for (j = 0; j < frameBytes.size(); j++) {
+	      if (frameBytes[j] != outVector[j] ) fecupd++; //fprintf(stderr,"** DBG CHG %3d %02x %02x\n",j,frameBytes[j],outVector[j]);
+	} fprintf(stderr,"%d\n",fecupd);
+
+	// NOTE POST-FEC CHECK EFFICIENCY OF RS DECODER
+	crcec=0; for (j = 0; j < frameBytes.size()/24; j++) { crcec += !check_crc_bytes (&(outVector. data ()) [j*24], 22); }
+	fprintf(stderr,"** DBG POSTCRC[%d/%03ld] Status = ",crcec,frameBytes.size()/24); 
+        for (j = 0; j < frameBytes.size()/24; j++) {
+              uint8_t crcchk = check_crc_bytes (&(outVector. data ()) [j*24], 22);
+              fprintf(stderr,"%d",!crcchk);
+        } fprintf(stderr,"\n");
+        
+        // NOTE data handler Byte nicht wieder nach Bit konvertieren ...
+        uint16_t lenbuf = frameBytes.size(); // fprintf(stderr,"*** DBG frameBytes[%d]\n",lenbuf);
+        uint8_t buffer [lenbuf];
+        
+        for (j = 0; j < lenbuf/24; j++) {
+	      // Packet browsing // &(outVector. data ()) [j*24] & 0x30
+              uint8_t cntidx = (outVector[j*24] & 0x30)>>4; 			// b13-b12 Continuity index
+              uint8_t  flflg = (outVector[j*24] & 0x0c)>>2; 			// b11-b10 First/Last
+              uint16_t  padr = (outVector[j*24] & 0x03)<<8 | outVector[j*24+1]; // packet address
+              uint8_t  udlen = outVector[j*24+2] & 0x7f;   			// b6-b0   Useful data length
+              uint16_t pcrc  = (outVector[j*24+22])<<8 | outVector[j*24+23];	// packet crc
+//              fprintf(stderr,"***** CRC=%04X UL=%d *****\n",pcrc,udlen);
+//uint32_t zeroc = getBits(data,(packetLength-4)*8,16) + getBits(data,(packetLength-6)*8,16) * 0x10000;
+              if ( udlen > 0 ) {
+		    fprintf(stderr,"** PACKET    = "); for (k = 0; k <24; k++) fprintf(stderr,"%02X",outVector[j*24+k]);
+                    fprintf(stderr,"\n** DBG ov[%2d]= %02x%02x%02x ",j,outVector[j*24],outVector[j*24+1],outVector[j*24+2]);
+                    fprintf(stderr,"cntidx=%d flflg=%d padr=%d ul=%2d crc=%04x ",cntidx,flflg,padr,udlen,pcrc);
+	            if ((pcrc != 0) && check_crc_bytes (&(outVector. data ()) [j*24], 22)) {
+	                 fprintf(stderr,"PASS\n");
+	                 uint8_t dfoff=0;
+	                 switch (flflg) {
+		               case 2: { // First data group packet
+		               		 uint8_t extfld = (outVector[j*24+3] & 0x80)>>7;
+		               		 uint8_t crcfld = (outVector[j*24+3] & 0x40)>>6;
+		               		 uint8_t segfld = (outVector[j*24+3] & 0x20)>>5;
+		               		 uint8_t uacfld = (outVector[j*24+3] & 0x10)>>4;
+		               		 uint8_t MSCIdx = (outVector[j*24+4] & 0xf0)>>4;
+		               		 dfoff=2*(extfld+segfld); 
+		               		 if (uacfld == 1) { dfoff+=1+(outVector[j*24+3+dfoff+1]&0x0f); }
+		               		 fprintf(stderr,"** DBG FIRST PI=%d MSC=%d ext=%d crc=%d seg=%d ua=%d off=%d\n",cntidx,MSCIdx,extfld,crcfld,segfld,uacfld,dfoff);
+		               		 if (curMSC != 16 && (MSCIdx != ((curMSC+1)&0xf))) { 
+		               		       fprintf(stderr,"*** MSC DG SEQUENCE CORRUPTED cur=%d last=%d !\n",MSCIdx,curMSC); 
+		               		       // Obviously, we missed the last packet of the data group ...
+		               		       // NOTE Corrective action has to be defined!
+					 }
+					 curMSC = MSCIdx; // Start a new sequence
+					 curPI = cntidx;
+					 ByteBuf.resize(0);
+					 break;
+		               		}
+		               case 0: { // Intermediate data group packet ... check sequence ..
+		               	         if (curMSC == 16) { // return;
+					       dfoff=udlen;
+					 } else {
+				               if (cntidx != ((curPI+1)&3)) { 
+				                     fprintf(stderr,"*** MSC DG packet sequence error cur=%d last=%d !\n",cntidx,curPI); 
+					       }
+					       curPI=cntidx;
+					       fprintf(stderr,"** DBG INTER PI=%d MSC=%d adr=%d UL=%d\n",cntidx,curMSC,padr,udlen);
+					 }
+					 break;
+		                        }
+	 	               case 1: { // Last data group packet
+	 	                         if (curMSC == 16) { // return;
+					       dfoff=udlen;
+					 } else {
+			                       if (cntidx != ((curPI+1)&3)) { 
+                                                     fprintf(stderr,"*** MSC DG packet sequence error cur=%d last=%d !\n",cntidx,curPI); 
+	                                       }
+	                                       curPI=cntidx;
+	                                       fprintf(stderr,"** DBG LAST! PI=%d MSC=%d UL=%d series[%ld] frameBytes[%ld] ",
+	                                                       cntidx,curMSC,udlen,ByteBuf.size(),frameBytes.size());
+			                       //  if (series.size() > 0 ) my_dataHandler -> add_mscDatagroup (series);
+					 }
+					 break;
+	 	               		}
+		               case 3: { // Single packet, mostly padding
+		               	         if (padr == 2) { // Take special care for PPP-RTK-AdV sync
+		               	               curPI = (curPI+1)&3; curMSC=(curMSC+1)&0xf;
+		               	               fprintf(stderr,"** DBG PPP-RTK-AdV SYNC MSC=%d CI=%d\n",curMSC,curPI);
+		               	               dfoff=udlen;
+					 }
+					 fprintf(stderr,"** DBG Single Packet adr=%d=%d? len=%d bytes=%d fb=%ld 0x",padr,padr,udlen,blocksInBuffer,frameBytes.size()); 
+		  	                 break;
+		               		}
+			 }
+			 if ((dfoff != udlen) && (udlen > 0)) {
+			       // COPY
+		               fprintf(stderr,"\n** DBG COPY off=%d ul=%d |",dfoff,udlen);
+		               for (k=(3+dfoff);k < (3+udlen); k++) fprintf(stderr,"%02x",outVector[j*24+k]);
+		               fprintf(stderr,"|\n");
+		               std::copy(outVector.begin() + j*24 + 3 + dfoff, outVector.begin() + j*24 +3 + udlen, std::back_inserter(ByteBuf));
+		               		 
+			       if (flflg == 1||flflg==3) { fprintf(stderr,"\n** DBG OUTPUT = ");
+		                     for (const auto& value : ByteBuf) {
+		                           std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(value);
+			             } std::cout << std::endl;
+			             
+			             uint16_t mscdglen=ByteBuf.size();
+			             //for (k=0;k<8;k++) ByteBuf[k]=0xa5;
+				     /*fprintf(stderr,"\n** DBG OUTPUT = ");
+				     for (const auto& value : ByteBuf) {
+		                           std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(value);
+			             } std::cout << std::endl;*/
+
+			             fprintf(stderr,"\n** MSC DG len=%d CRC=",mscdglen);
+			             //  !check_crc_bytes (&(outVector. data ()) [j*24], 22)
+			             if (check_crc_bytes (&(  ByteBuf. data ()) [ 0  ], mscdglen-2)) {
+			                   fprintf(stderr,"PASS");
+			                   bytesOut (&(  ByteBuf. data ())[2], mscdglen-4, 2, ctx);
+				     } else { fprintf(stderr,"FAIL"); }
+			             fprintf(stderr,"\n");
+			       }
+			 }
+	            } else { fprintf(stderr,"FAIL"); }
+	            fprintf(stderr,"\n");
+	      } 
+	} 
+
+// uint8_t ByteBuf [3072];
+// uint16_t BBFidx = 0;
+// 4080d30008ffa7eee360521c40d921e22f0b00
+              
+
+        /*for (uint8_t i = 0; i < lenbuf; i ++) {
+           buffer [i] = frameBytes[i]; } 
+
+        if (bytesOut != nullptr) 
+           bytesOut (buffer, lenbuf, 2, ctx);*/
+           
+           
+
+/*	      PL = 24*(((frameBytes[ii]&0xC0)>>6)+1);
+	         currentLength = series. size ();
+	         fprintf(stderr,"i=%04d PL=%d UL=%d (bytes to add) series[%d] ",ii,PL,UL,currentLength);
+	         for (j = 0; j <8; j++) fprintf(stderr,"%02X%s",frameBytes[ii+j],(j==4)?"|":"");
+	         fprintf(stderr," ->");
+                 series. resize(currentLength+UL*8);
+                 fprintf(stderr,"series(%ld)\n",series.size());
+   	         for (j = 0; j < (series.size()-currentLength); j++) {
+//   	            fprintf(stderr,"CL+j=%d < %d  fb[%d] < %d\n",j,series.size(),ii+3+j/8,frameBytes.size());
+	      	    uint8_t bit=j%8;
+	      	    series[currentLength+j]=(frameBytes[ii+3+j/8]&(1<<(7-bit)))>>(7-bit);
+	         }
+	      }
+//              ii+=24*(((frameBytes[ii]&0xC0)>>6)+1);
+//              fprintf(stderr,"** I=%d\n",i);
+	}
+	fprintf(stderr,"*** DBG: Transferred %d Frame Bytes to %ld Series Bits.\n",ii,series.size());
+	fprintf(stderr,"*** DBG: Size of Series=%ld ",series.size());
+	if (series.size() >= 200) for (i=0; i < 200; i++) fprintf(stderr,"%d",series[i]);*/
+
+//	if (rse == 0 ) {
+// NOTE		my_dataHandler -> add_mscDatagroup (series);
+// NOTE		series. resize(0);
+//		frameBytes.resize(0);
+		//outVector.resize(0);
+//	}
+	//if ( rsek < 4) 
+	frameBytes.resize(0); series.resize(0);
+//	if (frameBytes.size() > 1400) frameBytes.resize(0);
+//	packetState = 0;
+	rsErrors+=rsek;
+	return;
+}		
+
+/*
+** DBG k=040 -> 0xc3e75ac28e7055ab3ff2fb9a015221de
+** DBG k=050 -> 0xc3e75ac28e7055ab3ff2fb9a015221de
+** DBG k=051 -> 0xc3e75ac28e7055ab3ff2fb9a015221de
+** DBG k=052 -> 0x1d78d6c860f878b7189f1a54961d5fde
+** DBG k=053 -> 0x5b72fe577a4c082bb13c0532b7f85fde
+** DBG k=054 -> 0xd368bd821fc277f7e5adae9cf2f85fde
+** DBG k=055 -> 0xa30c3367c65747db6519333df2f85fde
+** DBG k=056 -> 0xfa1fa6a9c8b94631f93a4b3df2f85fde
+** DBG k=057 -> 0x56b678fca4ea7b69be0a4b3df2f85fde
+** DBG k=058 -> 0xd6e19210dcfb645a5a0a4b3df2f85fde
+** DBG k=059 -> 0x03084d8f451cd2cd5a0a4b3df2f85fde
+** DBG k=060 -> 0x08b378e0ccad3fcd5a0a4b3df2f85fde
+** DBG k=061 -> 0x83aa97dde0e13fcd5a0a4b3df2f85fde
+** DBG k=062 -> 0x7b8b3dbed2e13fcd5a0a4b3df2f85fde
+** DBG k=063 -> 0xabfd5078d2e13fcd5a0a4b3df2f85fde
+** DBG k=064 -> 0x2fb49478d2e13fcd5a0a4b3df2f85fde
+** DBG k=065 -> 0xaee09478d2e13fcd5a0a4b3df2f85fde
+** DBG k=066 -> 0x86e09478d2e13fcd5a0a4b3df2f85fde
+** DBG k=067 -> 0x86e09478d2e13fcd5a0a4b3df2f85fde
+//
+void	dataProcessor::RS_dry_run (void) {
+uint8_t         rsIn    [204]; // 120
+uint8_t         rsOut   [204]; // 110 // 188
+uint16_t	i,ii, j, k;
+uint8_t		m=0;
+int16_t		ler;
+uint8_t	PL=0,UL=0;
+uint8_t rse, base             = 0;
+uint8_t RSDC[16] = {195, 231, 90, 194, 142, 112, 85, 171, 63, 242, 251, 154, 1, 82, 33, 222};
+
+	for (m=0; m<204 ;m++ ) { 
+
+		if (m < 188) { 	rsIn[m]=m+1; 
+		} else {       	rsIn[m]=RSDC[m-188]; } 
+		rsOut[m]=0; 
+	} 
+	fprintf(stderr," m[1]=%d m[203]=%d\n",rsIn[1],rsIn[203]);
+	fprintf(stderr,"!!!!! III\n");
+		
+	ler = my_rsDecoder. dec(rsIn, rsOut, 51);
+	fprintf(stderr,"!!! RS CHK ler=%d ",ler);
+	if ( ler <= 0 ) {
+	      fprintf(stderr,"ERR\n");
+	      fprintf(stderr,"** DBG example data table for dt[0]=%d, dt[1]=%d .. dt[187]=%d\n** DBG k=51? -> 0x",rsIn[0],rsIn[1],rsIn[187]);
+	      for (k=0; k<16; k++) {fprintf(stderr,"%02x",RSDC[k]);} fprintf(stderr,"\n");
+	      for (k=40; k<71; k++) {
+	      	fprintf(stderr,"** DBG k=%03d -> 0x",k);
+	        my_rsDecoder. enc(rsIn, rsOut, k); 
+	        for (m = 188; m < 204; m ++) fprintf(stderr,"%02x",rsOut[m]);
+	        fprintf(stderr,"\n");
+              } 
+	} else { fprintf(stderr,"OK\n"); }
+...*/
+
+//
+// 	Handle first packet of data group
+//	      for (i=0; i < 2448; i ++) frameBytes[i]=0;
+void	dataProcessor::handleFDGPacket (uint8_t *data, int16_t length) {
+uint16_t	offset=40;	         
+// MSC Data Group header 
+uint8_t	ExtensionFlag	= getBits_1 (data, 24); // 1 = extension field present
+uint8_t	CRCFlag		= getBits_1 (data, 25); // 1 = CRC data group at end of DG
+uint8_t	SegmentFlag	= getBits_1 (data, 26); // 1 = segment field present
+uint8_t	UserAccessFlag	= getBits_1 (data, 27); // 1 = user access field present
+uint8_t	DataGroupType	= getBits_4 (data, 28); // 0 = general data / 1 CA msg acc. ETSI TS 102 367
+uint8_t	ContinuityFlag  = getBits_4 (data, 32); // inkrementiert ...
+uint8_t	RepetitionFlag	= getBits_4 (data, 36); // 1111 = "Dauerloop"
+int16_t	ExtensionField	= getBits (data, offset, 16 ); 
+//	fprintf(stderr,"** MSC DG ExtFlg=%d CRC=%d SegFlg=%d UsrAcFlg=%d DGTy=%d CntFlg=%d RepFlg=%d",
+//	      			ExtensionFlag, CRCFlag, SegmentFlag, UserAccessFlag, DataGroupType, ContinuityFlag, RepetitionFlag);
+	(void)ExtensionFlag;
+	(void)CRCFlag;
+	(void)DataGroupType;
+	(void)ContinuityFlag;
+	(void)RepetitionFlag;
+	(void)ExtensionField;
+	
+	packetState = 1;
+	if (ExtensionFlag == 1) { 	// CA information on data group level
+	      offset += 16;		//		 fprintf(stderr, " ExtField=%04X\n", ExtensionField);
+	} 				// else { fprintf(stderr, "\n"); }
+
+	/* Optional Session header (16 bits segments + (n+1) x 8 bits User access field )*/
+	if (SegmentFlag == 1 && UserAccessFlag == 1) {	//	      	  fprintf(stderr,"** MSC Session header");
+              //offset=56;
+              if (SegmentFlag == 1) {
+	            int8_t	LastFlag	= getBits_1 (data, offset);  // 0 .. there is more / 1 = last segment
+		    int16_t     SegmentNumber   = getBits (data, offset+1,15); // starting form 0 ...
+		    fprintf(stderr," Last=%d SegNr=%d",LastFlag,SegmentNumber);
+		    offset += 16;
+	       }
+	       if (UserAccessFlag == 1) {
+		    uint8_t	Rfa		= getBits_3  (data, offset); // reserverd for future
+		    uint8_t	TransportIDFlag	= getBits_1  (data, offset+3); // 1 = transport ID field present
+		    uint8_t	LengthIndicator = getBits_4  (data, offset+4); // Länge der TransportID und End-User Adressfeld
+		    uint16_t	TransportId	= getBits (data, offset+8, 16); // Unique Object Identifier
+		    uint16_t	EndUserAdrField = getBits (data, offset+24, 16); // kann auch größer sein!
+		    fprintf(stderr, " Rfa=%d TransIDFlg=%d LI=%d TransId=%04X EUsrA=%04X", Rfa, TransportIDFlag, LengthIndicator, TransportId, EndUserAdrField);
+		}
+		fprintf(stderr,"\n");
+	} // CntFlg einzig sinnvoll!
+	Packet2Arr(data, length, false);
+}
+
+//
+// 	Copy data buffer to series array 
+void	dataProcessor::Packet2Arr (uint8_t *data, int16_t length, bool skipseries) {
+int32_t currentLength = series. size ();
+uint16_t	i, j; //, x; //, pl,x;
+uint8_t		temp=0;
+uint8_t		debug=0;
+uint16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;	// 24-96 bytes
+
+	// Fill series data buffer
+	if (!skipseries) {
+	      series. resize (currentLength + 8 * length);
+	      if (debug == 1) fprintf(stderr,"**!* DBG L=%d\n",length);
+	      if (debug == 1) { fprintf(stderr,"** DBG Cpy series[%04d]=0x",currentLength); }
+	      for (i = 0; i < 8 * length; i ++) {
+	            series [currentLength + i] = data [24 + i];	//	      print_buffer_hex(series.data(), series.size());
+	      }
+	      if (debug == 1) { for (i = 0; i <= 10; i++) { fprintf(stderr,"%02X",getBits(data,24+i*8,8)); } }
+	} //else { fprintf(stderr,"*** SKIP SERIES ****"); }
+	      
+	// Fill FEC frameBytes buffer
+	currentLength = frameBytes. size();
+        length=packetLength-5;
+	frameBytes. resize(currentLength + (3 + length + 2));	// 3 packet header byte + packet data + 2 packet CRC bytes
+//	fprintf(stderr,"** DBG ADDING %d Bytes of MSC #%d to FEC FRAME -> %4ld CRC[%3d]=%d **\n",(3 + length + 2),curMSC,frameBytes. size(),(currentLength + length + 5)/24,skipseries);
+	pcf[(currentLength + length + 5)/24]=skipseries;
+//	if (x == 0) fprintf(stderr,"** DBG 1st packet =          0x");
+//	fprintf(stderr,"* PACKET= ");
+	for (i = 0; i < (3 + length + 2); i ++) {      		// packet bytes
+	      temp = 0;
+	      for (j = 0; j < 8; j ++) 
+                    temp = (temp << 1) | (data [i * 8 + j] & 01); // V [i * 8 + j] & 01 -> Bitpuffer
+//	      if (x == 0 && i <=24) temp=i;
+	      frameBytes [currentLength + i] = temp;
+//	      if (x == 0 && i < 24) fprintf(stderr,"%02x",temp);
+	      if (debug == 1 && i <=10) fprintf(stderr,"%02X",temp);
+	      if (debug == 1 && i == 2) fprintf(stderr,"|");
+//	      fprintf(stderr,"%02x",temp);
+	} if (debug == 1) { 		fprintf(stderr,"\n");}
+//	fprintf(stderr,"\n");
+	
+/*	for (i = 0; i < (3 + length + 2)/2; i ++) {
+	      fprintf(stderr,"* RSDT#%02d %02x|%02x\n",i,frameBytes[currentLength + i],frameBytes[currentLength + 12 + i]);
+	}*/
+	if (frameBytes.size() < (188*12)) return;
+
+	// Move old parts out, if necessary
+	for (i = 0; i < (188*12); i ++) {
+		frameBytes[i]=frameBytes[frameBytes.size()-(188*12)+i];
+	} frameBytes.resize(188*12);
+
+	return; // NOTE SKIP the moving BLOCK!
+	fprintf(stderr,"!!!!! SHOULD NOT HAPPEN !!!!!\n");
+
+	if (i > 0 ) {
+	      i = 188*12;
+	      fprintf(stderr,"** DBG Framesize now = %ld\n",frameBytes.size()-i);
+	      outVector.resize(188*12-1,0);	//  outVector.resize(frameBytes.size()-i-1);
+//	      for ( j = 0; j < (frameBytes.size()-i); j ++) {
+	      for ( j = outVector.size(); j == 0; j --) {
+	            outVector[j] = frameBytes[i+j];
+	      }
+	      fprintf(stderr,"** DBG outVector[%ld] ov[%d]=%02X fb[%d]=%02X **\n",outVector.size(),j,outVector[j],i+j,frameBytes[i+j]);
+	} 
+}
+
+//
+//
+//	Really no idea what to do here
+void	dataProcessor::handleTDCAsyncstream (uint8_t *data, int16_t length) {
+int16_t	packetLength	= (getBits_2 (data, 0) + 1) * 24;
+int16_t	continuityIndex	= getBits_2 (data, 2);
+int16_t	firstLast	= getBits_2 (data, 4);
+int16_t	address		= getBits   (data, 6, 10);
+uint16_t command	= getBits_1 (data, 16);
+int16_t	usefulLength	= getBits_7 (data, 17);
+
+	(void)	length;
+	(void)	packetLength;
+	(void)	continuityIndex;
+	(void)	firstLast;
+	(void)	address;
+	(void)	command;
+	(void)	usefulLength;
+	fprintf(stderr, "DP: Clueless\n");
+	if (!check_CRC_bits (data, packetLength * 8))
+	   return;
+}
+
