@@ -1,6 +1,6 @@
 [submodule "dab-cmdline"]
 	path = dab-cmdline
 	url = git@github.com:SJuhl75/dab-cmdline.git
-[submodule "dab3"]
-	path = dab3
+[submodule "dab-ex"]
+	path = dabex
 	url = git@github.com:SJuhl75/dabex.git
