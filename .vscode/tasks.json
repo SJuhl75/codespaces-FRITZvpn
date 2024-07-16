@@ -1,0 +1,35 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run dab-rtl_tcp",
+            "type": "shell",
+            "command": "/workspaces/codespaces-openvpn/dab3/dab-cmdline/example-5/build/dab-rtl_tcp-5",
+            "args": [
+                "-H", "192.168.178.61"
+            ],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run rtkrcv",
+            "type": "shell",
+            "command": "/workspaces/codespaces-openvpn/RTKLIB/app/consapp/rtkrcv/gcc/rtkrcv",
+            "args": [
+                "-o", "/workspaces/codespaces-openvpn/conf/rtl.conf", "-s"
+            ],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
