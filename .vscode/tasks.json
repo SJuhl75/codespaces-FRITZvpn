@@ -22,7 +22,7 @@
             "type": "shell",
             "command": "/workspaces/codespaces-openvpn/RTKLIB/app/consapp/rtkrcv/gcc/rtkrcv",
             "args": [
-                "-o", "/workspaces/codespaces-openvpn/conf/rtl.conf", "-s"
+                "-o", "/workspaces/codespaces-openvpn/conf/rtl.conf", "-s", "-p", "5009", "-m", "5010"
             ],
             "group": "test",
             "presentation": {
