@@ -32,4 +32,9 @@
             Fast-forward
              README.md | 3 ++-
               1 file changed, 2 insertions(+), 1 deletion(-)
+    
+    Szenario
+    --------
+    1) Ich arbeite im Codespace am Code | Parallel wird der existierende Code weiterentwickelt
+    2) TEST: Unterverzeichnis im dab-cmdline (in meinem Branch)
               
