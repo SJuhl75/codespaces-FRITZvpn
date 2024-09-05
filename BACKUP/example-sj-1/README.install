@@ -1,0 +1,10 @@
+## grabbed from https://github.com/JvanKatwijk/dab-cmdline/tree/master
+
+cd dab-cmdline
+cd example-2
+mkdir build
+cd build
+cmake .. -DRTL_TCP=ON #XXX=ON (replace XXX by the name of the device)
+make
+sudo make install
+cd ../../..
