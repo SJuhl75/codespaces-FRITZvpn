@@ -4,3 +4,6 @@
 [submodule "RTKLIB"]
 	path = RTKLIB
 	url = git@github.com:SJuhl75/RTKLIB.git
+[submodule "dab-cmdline"]
+	path = dab-cmdline
+	url = https://github.com/SJuhl75/dab-cmdline.git
