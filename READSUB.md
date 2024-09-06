@@ -11,3 +11,14 @@
    git add .
    git commit -m "Geforktes Repository als Submodul hinzugefügt"
    git push
+
+**!WICHTIG!** 
+Remote-URL MUSS auf SSH geändert werden, damit aus dem Codespace heraus ein Branch angelegt werden kann!
+# Überprüfen Sie die Remote-URL
+git remote -v
+
+# Ändern Sie die Remote-URL auf SSH (falls erforderlich)
+git remote set-url origin git@github.com:SJuhl75/dab-cmdline.git
+
+# Pushen Sie den Branch erneut
+git push origin newbranch
