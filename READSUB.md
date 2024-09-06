@@ -22,3 +22,38 @@ git remote set-url origin git@github.com:SJuhl75/dab-cmdline.git
 
 # Pushen Sie den Branch erneut
 git push origin newbranch
+
+--- Umgang mit Upstream Pull request ---
+Wie können die Features eines Branches in einen anderen integriert werden?
+a) in den Ziel-Branch wechseln
+   git checkout <target-branch>
+b) Den gewünschten Branch "einmergen" 
+   git merge packetDataRS
+c) Merge-Konflike auflösen
+   - git status
+   - Konflikte manuell lösen
+   - git add <konflikt-datei>
+   - git commit
+   - git push
+
+2) Was tun, wenn der Pull-Request akzeptiert wird?
+--------------------------------------------------
+a) In den Ziel-Branch wechseln
+   git checkout <target-branch>
+b) Den Ziel-Branch aktualisieren
+   git pull origin <target-branch>
+c) Den Feature-Branch löschen (optional)
+   git branch -d <feature-branch>
+   git push origin --delete <feature-branch>
+
+3) Was tun, wenn der Pull-Request abgelehnt wird?
+-------------------------------------------------
+a) Feedback überprüfen und Änderungen vornehmen
+   - Überprüfen Sie die Kommentare und das Feedback zum Pull-Request.
+   - Nehmen Sie die erforderlichen Änderungen im Feature-Branch vor.
+b) Änderungen committen und pushen
+   git add .
+   git commit -m "Feedback berücksichtigt"
+   git push origin <feature-branch>
+c) Neuen Pull-Request erstellen
+   - Erstellen Sie einen neuen Pull-Request mit den vorgenommenen Änderungen.
