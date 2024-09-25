@@ -1,0 +1,61 @@
+https://destevez.net/2019/07/galileo-constellation-outage/
+https://www.gsc-europa.eu/sites/default/files/sites/all/files/Galileo_OS_SIS_ICD_v2.1.pdf section 2.3.1
+GALILEO OPEN SERVICE SIGNAL-IN-SPACE INTERFACE CONTROL DOCUMENT
+Galileo E1 Band: 1559 MHz to 1591 MHz with a center frequency of 1575.42 MHz
+Galileo E6 Band: 1260 MHz to 1300 MHz with a center frequency of 1278.75 MHz
+Galileo E5 Band: 1164 MHz to 1214 MHz with a center frequency of 1189 MHz
+Galileo E5a Band: 1164 MHz to 1189 MHz with a center frequency of 1176.5 MHz
+Galileo E5b Band: 1189 MHz to 1214 MHz with a center frequency of 1201.5 MHz
+
+https://www.rtl-sdr.com/a-crude-skew-planar-wheel-antenna-for-receiving-gps-l1-with-an-rtl-sdr/
+https://www.rtl-sdr.com/receiving-gps-with-an-rtl-sdr-dongle-and-gps-antenna/
+https://sdrgps.blogspot.com/2015/12/first-proof-of-concept-gps-fix-in.html
+https://sdrgps.blogspot.com/2015/12/setting-up-gnss-sdr-in-kali-linux.html
+https://github.com/taroz/GNSS-SDRLIB
+
+https://www.rtl-sdr.com/rtl-sdr-tutorial-gps-decoding-plotting/
+
+https://insidegnss.com/auto/2012-sepoct-WP.pdf
+Galileo E5 signal structure
+The Galileo E5 signal is Right Hand Circular Polarized
+(RHCP) and uses an Alternate Binary Offset Carrier AltBOC(15,10) modulation. The carrier, at E5, is modulated
+by four quasi-orthogonal Pseudo-Random Noise (PRN)
+codes (cE5a-I, cE5a-Q, cE5b-I, and cE5a-Q), two navigation
+messages (dE5a-I, dE5b-I), and one side-band sub-carrier with
+a rate of fsc = 15.345 MHz. The expressions for the band
+pass transmitted signal, assuming one satellite, and its
+base-band representation are given in (1) and (2) (European
+Space Agency, European Commission 2010):
+SE5t
+ðtÞ ¼ AR sE5ðtÞej2pfct   ð1Þ
+sE5ðtÞ ¼ sE5IðtÞ þ jsE5QðtÞ ð2Þ
+where A is the signal amplitude, and fc is the carrier
+frequency equal to 1,191.795 MHz. R denotes the real
+function. A detailed description of the generation of the
+Galileo AltBOC-modulated signal sE5(t) can be found in
+European Space Agency, European Commission (2010).
+The analytical baseband complex envelope representation
+of sE5(t) is given by:
+
+
+
+
+German Translation: The German term for "skew planar wheel antenna" is "Schiefe Planar-Rad-Antenne."
+
+DIY
+https://www.flitetest.com/articles/The_Skew_Planar_Wheel_Antenna
+https://www.thingiverse.com/thing:2128497/files
+
+
+Tallysman TW7875: This is a multi-GNSS antenna covering GPS, GLONASS, Galileo, and BeiDou, including the Galileo E5 band. It's known for its precision and strong signal reception.
+199 $ -> https://www.navtechgps.com/tw7875_/
+199 € -> https://www.ardusimple.com/product/calibrated-survey-gnss-quadband-antenna-ip67/
+
+NovAtel GNSS-502: This antenna supports L1/L2/L5 and E1/E5 signals, making it suitable for Galileo E5 reception. It's highly regarded in professional GNSS applications.
+821 € -> https://www.ppmshop.de/Vermessung/NovAtel-GNSS502-L1-L2-GNSS-Antenne.aspx?WebPortalCmd=1834&WPParams=77BDA8D1BFDADBD9B1DBBCCAD5DAAAA5
+
+Trimble Zephyr 3: This antenna covers the L1, L2, L5, E1, E5a, and E5b bands, making it a robust choice for Galileo signals.
+Galileo E5 Signal:
+1.200€ https://www.ebay.de/itm/146036370143?_skw=Trimble+Zephyr+3&itmmeta=01J8GBT0R8YVER0GNA0J8SQREZ&hash=item2200722adf:g:4OsAAOSw8YNm6zDB&itmprp=enc%3AAQAJAAAA8HoV3kP08IDx%2BKZ9MfhVJKlwQAuSOiOFn4Q9jUI7SvAH%2BIhbqMvasqAFrk7ezC3aVt0PgfPUuUph1AIGT1zruM2cIk2%2Bmrc6jmx6--RwnldG5mpZlEGYs7EgB9eCtb6EAoKQrvWffkZ2fqP6MKmJb30EBjdFRGcfP7TsXDp6MiC0BQvG%2BiyI4iVpMKxrC0v79K4IlI9QiLOajq9uNsOX%2BOvZpNQlmyFp%2FWl0Xw3gxsiOUOKrEM46%2BHRusAw2VjZWvzcrRD7Aqdih5pQdOGDRVnyRiE59LJaYvLefjiA4a72FuYndoM6wkptENFlMgCCt9g%3D%3D%7Ctkp%3ABk9SR8CM6IvEZA
+
+The Galileo E5 signal is transmitted by all operational Galileo satellites. The E5 band is divided into E5a and E5b, used for different services, including high-precision positioning. The full E5 band is available on all modern Galileo satellites, ensuring comprehensive coverage.
