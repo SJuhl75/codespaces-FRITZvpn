@@ -11,7 +11,9 @@
     git submodul status
 
 5) Submodul hinzufügen
-   git submodule add -b sd35 https://github.com/lllyasviel/stable-diffusion-webui-forge.git stable-diffusion-webui-forge
+   Um an einem Fork zu arbeiten, zunächst ins eigene Repo klonen und von dort aus hier hinzufügen!
+   #git submodule add -b sd35 https://github.com/lllyasviel/stable-diffusion-webui-forge.git stable-diffusion-webui-forge
+   git submodule add ssh://git@github.com:SJuhl75/stable-diffusion-webui-reForge.git stable-diffusion-webui-reForge
 
 6) Submodule aktualisieren / mergen
     a) Original-Repo hinzufügen
