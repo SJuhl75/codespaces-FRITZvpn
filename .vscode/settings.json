@@ -9,5 +9,6 @@
         "unordered_set": "cpp",
         "vector": "cpp"
     },
-    "cmake.sourceDirectory": "/workspaces/codespaces-openvpn/dab-ex/dab-cmdline/dab-scanner"
+    "cmake.sourceDirectory": "/workspaces/codespaces-openvpn/dab-ex/dab-cmdline/dab-scanner",
+    "workbench.preferredDarkColorTheme": "GitHub Light High Contrast"
 }
