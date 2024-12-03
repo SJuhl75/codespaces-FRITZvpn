@@ -10,7 +10,10 @@
 4) Status-Check
     git submodul status
 
-5) Submodule aktualisieren / mergen
+5) Submodul hinzufügen
+   git submodule add -b sd35 https://github.com/lllyasviel/stable-diffusion-webui-forge.git stable-diffusion-webui-forge
+
+6) Submodule aktualisieren / mergen
     a) Original-Repo hinzufügen
        - ggf. git remote add upstream https://github.com/original-owner/original-repo.git
     b) Änderungen vom Original-Repo holen
