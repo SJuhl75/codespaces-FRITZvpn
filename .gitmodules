@@ -8,3 +8,6 @@
 	path = dab-cmdline
 	url = https://github.com/SJuhl75/dab-cmdline.git
 
+[submodule "stable-diffusion-webui-forge"]
+	path = stable-diffusion-webui-forge
+	url = https://github.com/SJuhl75/stable-diffusion-webui-forge.git
