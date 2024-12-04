@@ -8,6 +8,3 @@
 	path = dab-cmdline
 	url = https://github.com/SJuhl75/dab-cmdline.git
 
-[submodule "stable-diffusion-webui-reForge"]
-	path = stable-diffusion-webui-reForge
-	url = https://github.com/SJuhl75/stable-diffusion-webui-reForge.git
